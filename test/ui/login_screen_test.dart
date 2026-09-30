@@ -1,42 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mitimiti/data/app_exception.dart';
-import 'package:mitimiti/data/auth_repository.dart';
 import 'package:mitimiti/ui/auth/login_screen.dart';
 
-class FakeAuthRepository implements AuthRepository {
-  final calls = <String>[];
-  AppException? failWith;
-
-  @override
-  bool get isSignedIn => false;
-
-  @override
-  String? get currentUserId => null;
-
-  @override
-  Stream<bool> get signedInChanges => const Stream.empty();
-
-  @override
-  Future<void> signIn({required String email, required String password}) async {
-    calls.add('signIn $email $password');
-    if (failWith != null) throw failWith!;
-  }
-
-  @override
-  Future<bool> signUp({
-    required String email,
-    required String password,
-    required String name,
-  }) async {
-    calls.add('signUp $email $password $name');
-    if (failWith != null) throw failWith!;
-    return true;
-  }
-
-  @override
-  Future<void> signOut() async {}
-}
+import 'fakes.dart';
 
 void main() {
   late FakeAuthRepository auth;

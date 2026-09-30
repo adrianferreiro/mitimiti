@@ -28,6 +28,16 @@ class GroupsScreen extends StatefulWidget {
 class _GroupsScreenState extends State<GroupsScreen> {
   late Future<List<Group>> _myGroups = widget.groups.myGroups();
 
+  @override
+  void initState() {
+    super.initState();
+    // Caso típico: un solo grupo (la pareja). Se abre directo; volviendo
+    // atrás queda la lista para crear o unirse a otro.
+    _myGroups.then((groups) {
+      if (mounted && groups.length == 1) _open(groups.single);
+    }, onError: (_) {});
+  }
+
   void _reload() => setState(() => _myGroups = widget.groups.myGroups());
 
   Future<void> _createGroup() async {

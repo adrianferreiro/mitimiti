@@ -1,4 +1,8 @@
+import 'package:mitimiti/data/app_exception.dart';
+import 'package:mitimiti/data/auth_repository.dart';
 import 'package:mitimiti/data/group_data_repository.dart';
+import 'package:mitimiti/data/groups_repository.dart';
+import 'package:mitimiti/domain/models/group.dart';
 import 'package:mitimiti/domain/models/category.dart';
 import 'package:mitimiti/domain/models/expense.dart';
 import 'package:mitimiti/domain/models/member.dart';
@@ -7,9 +11,13 @@ import 'package:mitimiti/domain/models/settlement.dart';
 /// Registra las llamadas como texto para poder comparar fácil.
 class FakeGroupDataRepository implements GroupDataRepository {
   final calls = <String>[];
+  GroupData data = sampleData();
 
   @override
-  Future<GroupData> load(String groupId) async => throw UnimplementedError();
+  Future<GroupData> load(String groupId) async => data;
+
+  @override
+  void Function() watch(String groupId, void Function() onChange) => () {};
 
   @override
   Future<void> addExpense({
@@ -54,6 +62,55 @@ class FakeGroupDataRepository implements GroupDataRepository {
       calls.add('deleteSettlement $settlementId');
 }
 
+class FakeAuthRepository implements AuthRepository {
+  final calls = <String>[];
+  AppException? failWith;
+
+  @override
+  bool get isSignedIn => false;
+
+  @override
+  String? currentUserId;
+
+  @override
+  Stream<bool> get signedInChanges => const Stream.empty();
+
+  @override
+  Future<void> signIn({required String email, required String password}) async {
+    calls.add('signIn $email $password');
+    if (failWith != null) throw failWith!;
+  }
+
+  @override
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String name,
+  }) async {
+    calls.add('signUp $email $password $name');
+    if (failWith != null) throw failWith!;
+    return true;
+  }
+
+  @override
+  Future<void> signOut() async {}
+}
+
+class FakeGroupsRepository implements GroupsRepository {
+  FakeGroupsRepository(this.groups);
+
+  final List<Group> groups;
+
+  @override
+  Future<List<Group>> myGroups() async => groups;
+
+  @override
+  Future<Group> createGroup(String name) => throw UnimplementedError();
+
+  @override
+  Future<Group> joinGroup(String code) => throw UnimplementedError();
+}
+
 GroupData sampleData({
   List<Expense> expenses = const [],
   List<Settlement> settlements = const [],
@@ -70,14 +127,20 @@ GroupData sampleData({
   settlements: settlements,
 );
 
-Expense expense(String id, String paidBy, int cents, {String desc = ''}) =>
-    Expense(
-      id: id,
-      groupId: 'g',
-      paidBy: paidBy,
-      amountCents: cents,
-      categoryId: 'super',
-      description: desc,
-      date: DateTime(2026, 9, 30),
-      createdBy: paidBy,
-    );
+Expense expense(
+  String id,
+  String paidBy,
+  int cents, {
+  String desc = '',
+  String category = 'super',
+  DateTime? date,
+}) => Expense(
+  id: id,
+  groupId: 'g',
+  paidBy: paidBy,
+  amountCents: cents,
+  categoryId: category,
+  description: desc,
+  date: date ?? DateTime(2026, 9, 30),
+  createdBy: paidBy,
+);

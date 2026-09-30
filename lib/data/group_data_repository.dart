@@ -85,6 +85,42 @@ class GroupDataRepository {
     );
   });
 
+  /// Llama a [onChange] cuando alguien cambia gastos, pagos o miembros del
+  /// grupo. Devuelve la función para dejar de escuchar.
+  ///
+  /// Los DELETE de Realtime no traen `group_id` (solo la clave primaria), así
+  /// que no se pueden filtrar por grupo: se escuchan todos y se recarga igual.
+  void Function() watch(String groupId, void Function() onChange) {
+    final byGroup = PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'group_id',
+      value: groupId,
+    );
+    var channel = _db.channel('group:$groupId');
+    for (final table in const ['expenses', 'settlements', 'group_members']) {
+      for (final event in const [
+        PostgresChangeEvent.insert,
+        PostgresChangeEvent.update,
+      ]) {
+        channel = channel.onPostgresChanges(
+          event: event,
+          schema: 'public',
+          table: table,
+          filter: byGroup,
+          callback: (_) => onChange(),
+        );
+      }
+      channel = channel.onPostgresChanges(
+        event: PostgresChangeEvent.delete,
+        schema: 'public',
+        table: table,
+        callback: (_) => onChange(),
+      );
+    }
+    channel.subscribe();
+    return () => _db.removeChannel(channel);
+  }
+
   Future<void> addExpense({
     required String groupId,
     required String paidBy,

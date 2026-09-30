@@ -1,14 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/group_data_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/models/group.dart';
+import '../../domain/summary.dart';
 import '../expenses/expense_form_screen.dart';
 import 'balance_tab.dart';
 import 'expenses_tab.dart';
 import 'members_screen.dart';
+import 'summary_tab.dart';
 
-/// Un grupo: pestañas de gastos y saldo, y acceso a los miembros.
+/// Un grupo: pestañas de gastos, resumen y saldo, y acceso a los miembros.
+///
+/// Se mantiene al día solo: escucha cambios en vivo y recarga al volver a la
+/// app desde segundo plano.
 class GroupScreen extends StatefulWidget {
   const GroupScreen({
     super.key,
@@ -31,11 +38,44 @@ class _GroupScreenState extends State<GroupScreen> {
   /// Lo último que cargó bien, para no vaciar la pantalla mientras recarga.
   GroupData? _last;
 
+  /// Mes que muestran Gastos y Resumen; `null` = todos. El saldo siempre es
+  /// de todo el historial.
+  DateTime? _month = monthOf(DateTime.now());
+
+  late final void Function() _unwatch;
+  late final AppLifecycleListener _lifecycle;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _unwatch = widget.repository.watch(widget.group.id, _scheduleReload);
+    _lifecycle = AppLifecycleListener(onResume: _reload);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _unwatch();
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  /// Los cambios en vivo suelen llegar en ráfaga (p. ej. un gasto y su
+  /// update): se agrupan en una sola recarga.
+  void _scheduleReload() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), _reload);
+  }
+
   Future<void> _reload() {
+    if (!mounted) return Future.value();
     final future = widget.repository.load(widget.group.id);
     setState(() => _data = future);
     return future.then((_) {}, onError: (_) {});
   }
+
+  void _setMonth(DateTime? month) => setState(() => _month = month);
 
   Future<void> _openExpenseForm(GroupData data, {Expense? expense}) async {
     final changed = await Navigator.of(context).push<bool>(
@@ -72,7 +112,7 @@ class _GroupScreenState extends State<GroupScreen> {
         final loading = snapshot.connectionState != ConnectionState.done;
 
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Scaffold(
             appBar: AppBar(
               title: Text(widget.group.name),
@@ -86,6 +126,7 @@ class _GroupScreenState extends State<GroupScreen> {
               bottom: const TabBar(
                 tabs: [
                   Tab(text: 'Gastos'),
+                  Tab(text: 'Resumen'),
                   Tab(text: 'Saldo'),
                 ],
               ),
@@ -121,9 +162,18 @@ class _GroupScreenState extends State<GroupScreen> {
                           children: [
                             ExpensesTab(
                               data: data,
+                              month: _month,
+                              onMonthChanged: _setMonth,
                               onRefresh: _reload,
                               onTapExpense: (e) =>
                                   _openExpenseForm(data, expense: e),
+                            ),
+                            SummaryTab(
+                              data: data,
+                              month: _month,
+                              onMonthChanged: _setMonth,
+                              currentUserId: widget.currentUserId,
+                              onRefresh: _reload,
                             ),
                             BalanceTab(
                               group: widget.group,
