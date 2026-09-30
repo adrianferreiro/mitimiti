@@ -48,4 +48,4 @@ dart format .                            # formatear
 
 - SDK de Dart: `^3.13.2` (ver `pubspec.yaml`).
 - El análisis estático excluye `build/`, `android/` e `ios/`.
-- Package name para imports: `package:mitimiti/...`. El application id de Android sigue siendo `com.example.mitimiti`.
+- Package name para imports: `package:mitimiti/...`. Application id (Android) y bundle id (iOS): `com.adrianferreiro.mitimiti`. No cambiarlo una vez publicada la app en las tiendas.
