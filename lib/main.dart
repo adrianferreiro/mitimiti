@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'config.dart';
 import 'data/auth_repository.dart';
+import 'data/group_data_repository.dart';
 import 'data/groups_repository.dart';
 
 Future<void> main() async {
@@ -17,6 +18,7 @@ Future<void> main() async {
     MitimitiApp(
       auth: AuthRepository(client.auth),
       groups: GroupsRepository(client),
+      groupData: GroupDataRepository(client),
     ),
   );
 }

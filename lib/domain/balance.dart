@@ -27,6 +27,18 @@ class Debt {
   String toString() => 'Debt($fromUserId -> $toUserId: $amountCents)';
 }
 
+/// Total pagado en gastos por cada miembro, en centavos (0 si no pagó nada).
+Map<String, int> paidTotals({
+  required List<String> memberIds,
+  required List<Expense> expenses,
+}) {
+  final totals = {for (final id in memberIds) id: 0};
+  for (final e in expenses) {
+    totals[e.paidBy] = (totals[e.paidBy] ?? 0) + e.amountCents;
+  }
+  return totals;
+}
+
 /// Saldo neto de cada miembro, en centavos.
 ///
 /// Positivo: el grupo le debe. Negativo: le debe al grupo.

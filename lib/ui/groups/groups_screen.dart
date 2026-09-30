@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/app_exception.dart';
 import '../../data/auth_repository.dart';
+import '../../data/group_data_repository.dart';
 import '../../data/groups_repository.dart';
 import '../../domain/models/group.dart';
 import 'group_screen.dart';
@@ -9,10 +10,16 @@ import 'group_screen.dart';
 /// Lista de grupos del usuario, con opciones para crear uno o unirse con un
 /// código de invitación.
 class GroupsScreen extends StatefulWidget {
-  const GroupsScreen({super.key, required this.auth, required this.groups});
+  const GroupsScreen({
+    super.key,
+    required this.auth,
+    required this.groups,
+    required this.groupData,
+  });
 
   final AuthRepository auth;
   final GroupsRepository groups;
+  final GroupDataRepository groupData;
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -58,8 +65,19 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  void _open(Group group) => Navigator.of(context)
-      .push(MaterialPageRoute<void>(builder: (_) => GroupScreen(group: group)));
+  void _open(Group group) {
+    final userId = widget.auth.currentUserId;
+    if (userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GroupScreen(
+          group: group,
+          repository: widget.groupData,
+          currentUserId: userId,
+        ),
+      ),
+    );
+  }
 
   void _showError(String message) {
     if (!mounted) return;

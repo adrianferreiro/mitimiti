@@ -9,6 +9,9 @@ class AuthRepository {
 
   bool get isSignedIn => _auth.currentSession != null;
 
+  /// Id del usuario con sesión iniciada, o `null` si no hay sesión.
+  String? get currentUserId => _auth.currentUser?.id;
+
   /// Emite cada vez que cambia si hay una sesión iniciada.
   Stream<bool> get signedInChanges =>
       _auth.onAuthStateChange.map((state) => state.session != null);

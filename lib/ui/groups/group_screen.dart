@@ -1,63 +1,163 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../data/group_data_repository.dart';
+import '../../domain/models/expense.dart';
 import '../../domain/models/group.dart';
+import '../expenses/expense_form_screen.dart';
+import 'balance_tab.dart';
+import 'expenses_tab.dart';
+import 'members_screen.dart';
 
-/// Detalle de un grupo. Por ahora muestra el código de invitación; los gastos
-/// y el saldo vienen en el próximo paso.
-class GroupScreen extends StatelessWidget {
-  const GroupScreen({super.key, required this.group});
+/// Un grupo: pestañas de gastos y saldo, y acceso a los miembros.
+class GroupScreen extends StatefulWidget {
+  const GroupScreen({
+    super.key,
+    required this.group,
+    required this.repository,
+    required this.currentUserId,
+  });
 
   final Group group;
+  final GroupDataRepository repository;
+  final String currentUserId;
 
-  Future<void> _copyCode(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: group.inviteCode));
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Código copiado')));
+  @override
+  State<GroupScreen> createState() => _GroupScreenState();
+}
+
+class _GroupScreenState extends State<GroupScreen> {
+  late Future<GroupData> _data = widget.repository.load(widget.group.id);
+
+  /// Lo último que cargó bien, para no vaciar la pantalla mientras recarga.
+  GroupData? _last;
+
+  Future<void> _reload() {
+    final future = widget.repository.load(widget.group.id);
+    setState(() => _data = future);
+    return future.then((_) {}, onError: (_) {});
   }
+
+  Future<void> _openExpenseForm(GroupData data, {Expense? expense}) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ExpenseFormScreen(
+          repository: widget.repository,
+          groupId: widget.group.id,
+          data: data,
+          currentUserId: widget.currentUserId,
+          expense: expense,
+        ),
+      ),
+    );
+    if (changed == true) await _reload();
+  }
+
+  void _openMembers(GroupData data) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => MembersScreen(
+        group: widget.group,
+        members: data.members,
+        currentUserId: widget.currentUserId,
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(group.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text(
-                    'Código de invitación',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  SelectableText(
-                    group.inviteCode,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      letterSpacing: 4,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pasale este código a quien quieras sumar al grupo.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: () => _copyCode(context),
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copiar código'),
-                  ),
+    return FutureBuilder<GroupData>(
+      future: _data,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) _last = snapshot.data;
+        final data = _last;
+        final loading = snapshot.connectionState != ConnectionState.done;
+
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(widget.group.name),
+              actions: [
+                IconButton(
+                  tooltip: 'Miembros e invitación',
+                  icon: const Icon(Icons.group_add_outlined),
+                  onPressed: data == null ? null : () => _openMembers(data),
+                ),
+              ],
+              bottom: const TabBar(
+                tabs: [
+                  Tab(text: 'Gastos'),
+                  Tab(text: 'Saldo'),
                 ],
               ),
             ),
+            floatingActionButton: data == null
+                ? null
+                : FloatingActionButton.extended(
+                    onPressed: () => _openExpenseForm(data),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Gasto'),
+                  ),
+            body: data == null
+                ? (snapshot.hasError
+                      ? _LoadError(onRetry: _reload)
+                      : const Center(child: CircularProgressIndicator()))
+                : Column(
+                    children: [
+                      if (loading) const LinearProgressIndicator(),
+                      if (snapshot.hasError && !loading)
+                        MaterialBanner(
+                          content: const Text(
+                            'No se pudo actualizar. Mostrando lo último cargado.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: _reload,
+                              child: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            ExpensesTab(
+                              data: data,
+                              onRefresh: _reload,
+                              onTapExpense: (e) =>
+                                  _openExpenseForm(data, expense: e),
+                            ),
+                            BalanceTab(
+                              group: widget.group,
+                              data: data,
+                              repository: widget.repository,
+                              currentUserId: widget.currentUserId,
+                              onChanged: _reload,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('No se pudo cargar el grupo.'),
+          const SizedBox(height: 16),
+          OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
         ],
       ),
     );

@@ -12,6 +12,9 @@ class FakeAuthRepository implements AuthRepository {
   bool get isSignedIn => false;
 
   @override
+  String? get currentUserId => null;
+
+  @override
   Stream<bool> get signedInChanges => const Stream.empty();
 
   @override
