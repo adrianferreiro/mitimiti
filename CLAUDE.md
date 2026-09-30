@@ -13,21 +13,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Decisiones tomadas (MVP)
 
-- Backend: **Supabase** (proyecto `kzfrtssvigmeitwiicyx`). Esquema aplicado; la app Flutter todavía no usa el cliente.
+- Backend: **Supabase** (proyecto `kzfrtssvigmeitwiicyx`). URL y publishable key en `lib/config.dart` (públicas por diseño; la seguridad la da RLS).
+- Auth: **email + contraseña, sin confirmación de email** ("Confirm email" desactivado en el dashboard) para no depender de SMTP en el MVP. Sin SMTP no hay recuperación de contraseña: se resetea a mano desde el dashboard. Más adelante: SMTP propio + código por email.
 - Moneda única: **ARS**. Montos siempre como `int` en centavos, nunca `double`.
 - Saldar deudas se registra como un `Settlement`; nunca se borran ni modifican gastos para cerrar el balance.
 
 ## Arquitectura
 
 - `lib/domain/`: Dart puro, sin imports de Flutter ni de Supabase. Es el corazón de la app y debe mantenerse testeable en aislamiento (`test/domain/`).
-  - `models/`: `Expense`, `Settlement`, `Category` (inmutables, validan en el constructor).
+  - `models/`: `Expense`, `Settlement`, `Category`, `Group` (inmutables, validan en el constructor).
   - `balance.dart`: `netBalances` calcula el saldo neto por miembro (`pagado − su parte + pagos enviados − pagos recibidos`; positivo = le deben). Cada gasto se reparte en partes iguales entre todos los miembros y **el que pagó absorbe los centavos sobrantes**, así la suma de saldos es siempre 0. `simplifyDebts` convierte saldos en transferencias sugeridas (mayor deudor ↔ mayor acreedor, desempate por id).
 - `supabase/migrations/`: esquema versionado (fuente de verdad de la base). Cambios al esquema = nueva migración, nunca editar una ya aplicada. Columnas en snake_case (`amount_cents`, `spent_on`, `settled_on`) que se mapean a los modelos de `lib/domain/`.
   - RLS en todas las tablas; el acceso se decide con `is_group_member(group_id)`.
   - El proyecto no expone tablas nuevas automáticamente: toda tabla nueva necesita `grant ... to authenticated` explícito además de sus políticas RLS.
   - Grupos y membresías **solo** se crean vía RPC: `create_group(group_name)` (agrega al creador y categorías por defecto) y `join_group(code)` (código de invitación de 6 caracteres).
   - FKs compuestas garantizan que quien paga/cobra sea miembro del grupo y que la categoría sea del mismo grupo.
-- `lib/main.dart` y `test/widget_test.dart` siguen siendo la plantilla del contador; reemplazar ambos cuando se haga la UI.
+- `lib/data/`: repositorios sobre `supabase_flutter` (`AuthRepository`, `GroupsRepository`) que mapean filas a modelos de `lib/domain/` y traducen errores de Supabase a `AppException` con mensaje en castellano para mostrar al usuario.
+- `lib/ui/`: pantallas (`auth/`, `groups/`). Reciben los repositorios por constructor (sin paquete de state management por ahora); en los tests se reemplazan por fakes con `implements` (`test/ui/`).
+- `lib/app.dart`: `MaterialApp` que muestra login o la lista de grupos según `AuthRepository.signedInChanges`. `lib/main.dart` inicializa Supabase y arma los repositorios.
 
 ## Comandos
 
@@ -36,8 +39,8 @@ flutter pub get                          # instalar dependencias
 flutter run                              # correr en el dispositivo/emulador conectado
 flutter analyze                          # lint (flutter_lints, ver analysis_options.yaml)
 flutter test                             # todos los tests
-flutter test test/widget_test.dart       # un archivo
-flutter test --plain-name "Counter"      # tests cuyo nombre contiene el texto
+flutter test test/ui/login_screen_test.dart  # un archivo
+flutter test --plain-name "registro"     # tests cuyo nombre contiene el texto
 dart format .                            # formatear
 ```
 
