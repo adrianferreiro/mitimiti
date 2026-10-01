@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "122139031675",
+    "project_id": "mitimiti-6d932",
+    "storage_bucket": "mitimiti-6d932.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122139031675:android:4d55b966c34e6fe3a20ade",
+        "android_client_info": {
+          "package_name": "com.adrianferreiro.mitimiti"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChPIuISeYBQgZhXSvGVCFLiyAmoTA32ig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

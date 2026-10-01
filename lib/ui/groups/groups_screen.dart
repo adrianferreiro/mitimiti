@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/app_exception.dart';
@@ -5,6 +7,7 @@ import '../../data/auth_repository.dart';
 import '../../data/group_data_repository.dart';
 import '../../data/groups_repository.dart';
 import '../../data/profile_repository.dart';
+import '../../data/push_notifications.dart';
 import '../../domain/models/group.dart';
 import '../account/account_screen.dart';
 import '../dialogs.dart';
@@ -20,12 +23,14 @@ class GroupsScreen extends StatefulWidget {
     required this.groups,
     required this.groupData,
     required this.profile,
+    required this.push,
   });
 
   final AuthRepository auth;
   final GroupsRepository groups;
   final GroupDataRepository groupData;
   final ProfileRepository profile;
+  final PushNotifications push;
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -33,15 +38,49 @@ class GroupsScreen extends StatefulWidget {
 
 class _GroupsScreenState extends State<GroupsScreen> {
   late Future<List<Group>> _myGroups = widget.groups.myGroups();
+  late final StreamSubscription<String> _pushTaps;
 
   @override
   void initState() {
     super.initState();
-    // Caso típico: un solo grupo (la pareja). Se abre directo; volviendo
-    // atrás queda la lista para crear o unirse a otro.
-    _myGroups.then((groups) {
-      if (mounted && groups.length == 1) _open(groups.single);
-    }, onError: (_) {});
+    _openInitialGroup();
+    _pushTaps = widget.push.openedGroupIds.listen(_openFromPush);
+  }
+
+  @override
+  void dispose() {
+    _pushTaps.cancel();
+    super.dispose();
+  }
+
+  /// Si la app se abrió tocando una notificación, abre ese grupo. Si no, y
+  /// hay un solo grupo (caso típico: la pareja), lo abre directo; volviendo
+  /// atrás queda la lista para crear o unirse a otro.
+  Future<void> _openInitialGroup() async {
+    final pushGroupId = await widget.push.takeInitialGroupId();
+    try {
+      final groups = await _myGroups;
+      if (!mounted) return;
+      final fromPush = groups.where((g) => g.id == pushGroupId);
+      if (fromPush.isNotEmpty) {
+        _open(fromPush.first);
+      } else if (groups.length == 1) {
+        _open(groups.single);
+      }
+    } catch (_) {}
+  }
+
+  /// Notificación tocada con la app en segundo plano: vuelve a la lista y
+  /// abre ese grupo (si ya estaba abierto, se reabre con los datos al día).
+  Future<void> _openFromPush(String groupId) async {
+    _reload();
+    try {
+      final groups = await _myGroups;
+      final matches = groups.where((g) => g.id == groupId);
+      if (!mounted || matches.isEmpty) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      _open(matches.first);
+    } catch (_) {}
   }
 
   void _reload() {

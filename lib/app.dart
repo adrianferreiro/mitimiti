@@ -5,6 +5,7 @@ import 'data/auth_repository.dart';
 import 'data/group_data_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/profile_repository.dart';
+import 'data/push_notifications.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/groups/groups_screen.dart';
 import 'ui/theme.dart';
@@ -16,12 +17,14 @@ class MitimitiApp extends StatelessWidget {
     required this.groups,
     required this.groupData,
     required this.profile,
+    required this.push,
   });
 
   final AuthRepository auth;
   final GroupsRepository groups;
   final GroupDataRepository groupData;
   final ProfileRepository profile;
+  final PushNotifications push;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +43,7 @@ class MitimitiApp extends StatelessWidget {
                 groups: groups,
                 groupData: groupData,
                 profile: profile,
+                push: push,
               )
             : LoginScreen(auth: auth),
       ),

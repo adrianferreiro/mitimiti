@@ -3,9 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_exception.dart';
 
 class AuthRepository {
-  AuthRepository(this._auth);
+  AuthRepository(this._auth, {this.beforeSignOut});
 
   final GoTrueClient _auth;
+
+  /// Se corre antes de cerrar sesión, mientras todavía hay permisos (p. ej.
+  /// para desregistrar el dispositivo de las notificaciones).
+  final Future<void> Function()? beforeSignOut;
 
   bool get isSignedIn => _auth.currentSession != null;
 
@@ -42,7 +46,10 @@ class AuthRepository {
     return response.session != null;
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await beforeSignOut?.call();
+    await _auth.signOut();
+  }
 
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
