@@ -5,8 +5,9 @@ import '../../data/auth_repository.dart';
 import '../../data/profile_repository.dart';
 import '../dialogs.dart';
 import '../theme.dart';
+import 'notifications_screen.dart';
 
-/// Nombre, contraseña y cierre de sesión.
+/// Nombre, contraseña, notificaciones y cierre de sesión.
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key, required this.auth, required this.profile});
 
@@ -167,6 +168,17 @@ class _AccountScreenState extends State<AccountScreen> {
                       title: const Text('Cambiar contraseña'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _changePassword,
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.notifications_outlined),
+                      title: const Text('Notificaciones'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              NotificationsScreen(profile: widget.profile),
+                        ),
+                      ),
                     ),
                   ],
                 ),

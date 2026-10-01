@@ -21,8 +21,12 @@ interface Change {
   actor: string | null;
 }
 
+// Columnas de notification_prefs.
+type Kind = "expense_new" | "expense_changed" | "settlement" | "member_joined";
+
 interface Push {
   userId: string;
+  kind: Kind;
   title: string;
   body: string;
   groupId: string;
@@ -61,7 +65,7 @@ Deno.serve(async (req) => {
   }
   const change = (await req.json()) as Change;
   try {
-    const pushes = await buildPushes(change);
+    const pushes = await allowedOnly(await buildPushes(change));
     await Promise.all(pushes.map(send));
     return new Response(JSON.stringify({ sent: pushes.length }), {
       headers: { "Content-Type": "application/json" },
@@ -103,7 +107,14 @@ async function buildPushes(c: Change): Promise<Push[]> {
     } else {
       body = `${actor} borró un gasto: ${what}`;
     }
-    return recipients.map((userId) => ({ userId, title: groupName, body, groupId }));
+    const kind: Kind = c.type === "INSERT" ? "expense_new" : "expense_changed";
+    return recipients.map((userId) => ({
+      userId,
+      kind,
+      title: groupName,
+      body,
+      groupId,
+    }));
   }
 
   if (c.table === "settlements" && c.type === "INSERT") {
@@ -116,13 +127,25 @@ async function buildPushes(c: Change): Promise<Push[]> {
       const body = c.actor === from
         ? `${nameOf(names, from)} te pagó ${amount}`
         : `${nameOf(names, c.actor)} registró que ${nameOf(names, from)} te pagó ${amount}`;
-      pushes.push({ userId: to, title: groupName, body, groupId });
+      pushes.push({
+        userId: to,
+        kind: "settlement",
+        title: groupName,
+        body,
+        groupId,
+      });
     }
     if (from !== c.actor) {
       const body = c.actor === to
         ? `${nameOf(names, to)} registró que le pagaste ${amount}`
         : `${nameOf(names, c.actor)} registró que le pagaste ${amount} a ${nameOf(names, to)}`;
-      pushes.push({ userId: from, title: groupName, body, groupId });
+      pushes.push({
+        userId: from,
+        kind: "settlement",
+        title: groupName,
+        body,
+        groupId,
+      });
     }
     return pushes;
   }
@@ -133,10 +156,29 @@ async function buildPushes(c: Change): Promise<Push[]> {
     const body = `${nameOf(names, joined)} se unió al grupo`;
     return memberIds
       .filter((id) => id !== joined)
-      .map((userId) => ({ userId, title: groupName, body, groupId }));
+      .map((userId) => ({
+        userId,
+        kind: "member_joined" as const,
+        title: groupName,
+        body,
+        groupId,
+      }));
   }
 
   return [];
+}
+
+// Saca los avisos que el destinatario apagó en Mi cuenta → Notificaciones.
+// Sin fila en notification_prefs = recibe todo.
+async function allowedOnly(pushes: Push[]): Promise<Push[]> {
+  if (pushes.length === 0) return pushes;
+  const ids = [...new Set(pushes.map((p) => p.userId))];
+  const prefs = rows(
+    "notification_prefs",
+    await db.from("notification_prefs").select("*").in("user_id", ids),
+  );
+  const byUser = new Map(prefs.map((p) => [p.user_id as string, p]));
+  return pushes.filter((p) => byUser.get(p.userId)?.[p.kind] !== false);
 }
 
 async function loadGroupName(groupId: string): Promise<string> {
