@@ -28,21 +28,51 @@ interface Push {
   groupId: string;
 }
 
-const db = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-);
+// Clave secreta nueva (sb_secret_...) si el proyecto la tiene; si no, la
+// service_role vieja. Con una clave sin permisos las consultas no fallan:
+// RLS devuelve listas vacías, por eso `rows` corta si hay error o si no hay
+// miembros.
+function secretKey(): string {
+  const keys = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (keys) {
+    const parsed = JSON.parse(keys) as Record<string, string>;
+    const key = parsed.default ?? Object.values(parsed)[0];
+    if (key) return key;
+  }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, secretKey(), {
+  auth: { persistSession: false },
+});
+
+function rows<T>(
+  what: string,
+  result: { data: T | null; error: { message: string } | null },
+): T {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`);
+  if (result.data == null) throw new Error(`${what}: sin datos`);
+  return result.data;
+}
 
 Deno.serve(async (req) => {
   if (req.headers.get("x-notify-secret") !== Deno.env.get("NOTIFY_SECRET")) {
     return new Response("unauthorized", { status: 401 });
   }
   const change = (await req.json()) as Change;
-  const pushes = await buildPushes(change);
-  await Promise.all(pushes.map(send));
-  return new Response(JSON.stringify({ sent: pushes.length }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const pushes = await buildPushes(change);
+    await Promise.all(pushes.map(send));
+    return new Response(JSON.stringify({ sent: pushes.length }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -110,24 +140,31 @@ async function buildPushes(c: Change): Promise<Push[]> {
 }
 
 async function loadGroupName(groupId: string): Promise<string> {
-  const { data } = await db.from("groups").select("name").eq("id", groupId)
-    .maybeSingle();
-  return data?.name ?? "mitimiti";
+  const group = rows(
+    "groups",
+    await db.from("groups").select("name").eq("id", groupId).maybeSingle(),
+  );
+  return group.name;
 }
 
 async function loadMemberIds(groupId: string): Promise<string[]> {
-  const { data } = await db.from("group_members").select("user_id")
-    .eq("group_id", groupId);
-  return (data ?? []).map((m) => m.user_id as string);
+  const members = rows(
+    "group_members",
+    await db.from("group_members").select("user_id").eq("group_id", groupId),
+  );
+  if (members.length === 0) throw new Error(`grupo ${groupId} sin miembros`);
+  return members.map((m) => m.user_id as string);
 }
 
 async function loadNames(
   ids: (string | null)[],
 ): Promise<Map<string, string>> {
   const wanted = [...new Set(ids.filter((id): id is string => id != null))];
-  const { data } = await db.from("profiles").select("id, display_name")
-    .in("id", wanted);
-  return new Map((data ?? []).map((p) => [p.id, p.display_name]));
+  const profiles = rows(
+    "profiles",
+    await db.from("profiles").select("id, display_name").in("id", wanted),
+  );
+  return new Map(profiles.map((p) => [p.id, p.display_name]));
 }
 
 function nameOf(names: Map<string, string>, id: string | null): string {
@@ -196,9 +233,10 @@ async function accessToken(): Promise<string> {
 }
 
 async function send(push: Push): Promise<void> {
-  const { data } = await db.from("device_tokens").select("token")
-    .eq("user_id", push.userId);
-  const tokens = (data ?? []).map((t) => t.token as string);
+  const tokens = rows(
+    "device_tokens",
+    await db.from("device_tokens").select("token").eq("user_id", push.userId),
+  ).map((t) => t.token as string);
   if (tokens.length === 0) return;
 
   const auth = await accessToken();
