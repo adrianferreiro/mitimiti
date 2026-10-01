@@ -38,7 +38,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }, onError: (_) {});
   }
 
-  void _reload() => setState(() => _myGroups = widget.groups.myGroups());
+  void _reload() {
+    final future = widget.groups.myGroups();
+    // Bloque con llaves: setState no acepta un callback que devuelva Future.
+    setState(() {
+      _myGroups = future;
+    });
+  }
 
   Future<void> _createGroup() async {
     final name = await _askText(
@@ -101,40 +107,16 @@ class _GroupsScreenState extends State<GroupsScreen> {
     required String hint,
     required String action,
     bool uppercase = false,
-  }) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        void submit() {
-          final text = controller.text.trim();
-          if (text.isNotEmpty) Navigator.of(context).pop(text);
-        }
-
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: uppercase
-                ? TextCapitalization.characters
-                : TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: label, hintText: hint),
-            onSubmitted: (_) => submit(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(onPressed: submit, child: Text(action)),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    return result;
-  }
+  }) => showDialog<String>(
+    context: context,
+    builder: (_) => _TextPromptDialog(
+      title: title,
+      label: label,
+      hint: hint,
+      action: action,
+      uppercase: uppercase,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +195,69 @@ class _GroupsScreenState extends State<GroupsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Diálogo con un campo de texto. Es dueño de su controller: si lo liberara
+/// quien abre el diálogo apenas vuelve `showDialog`, la animación de cierre
+/// todavía lo usaría (y explota con "used after being disposed").
+class _TextPromptDialog extends StatefulWidget {
+  const _TextPromptDialog({
+    required this.title,
+    required this.label,
+    required this.hint,
+    required this.action,
+    required this.uppercase,
+  });
+
+  final String title;
+  final String label;
+  final String hint;
+  final String action;
+  final bool uppercase;
+
+  @override
+  State<_TextPromptDialog> createState() => _TextPromptDialogState();
+}
+
+class _TextPromptDialogState extends State<_TextPromptDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty) Navigator.of(context).pop(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: widget.uppercase
+            ? TextCapitalization.characters
+            : TextCapitalization.sentences,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          hintText: widget.hint,
+        ),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(onPressed: _submit, child: Text(widget.action)),
+      ],
     );
   }
 }

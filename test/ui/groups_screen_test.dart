@@ -8,12 +8,15 @@ import 'fakes.dart';
 const _depto = Group(id: 'g1', name: 'Depto', inviteCode: 'AAA111');
 const _viaje = Group(id: 'g2', name: 'Viaje', inviteCode: 'BBB222');
 
+late FakeGroupsRepository _groups;
+
 Future<void> _pump(WidgetTester tester, List<Group> groups) async {
+  _groups = FakeGroupsRepository([...groups]);
   await tester.pumpWidget(
     MaterialApp(
       home: GroupsScreen(
         auth: FakeAuthRepository()..currentUserId = 'juan',
-        groups: FakeGroupsRepository(groups),
+        groups: _groups,
         groupData: FakeGroupDataRepository(),
       ),
     ),
@@ -37,5 +40,45 @@ void main() {
     expect(find.text('Mis grupos'), findsOneWidget);
     expect(find.text('Depto'), findsOneWidget);
     expect(find.text('Viaje'), findsOneWidget);
+  });
+
+  // Regresión: el diálogo liberaba el TextEditingController mientras su
+  // animación de cierre todavía lo usaba.
+  testWidgets('crear grupo cierra el diálogo y abre el grupo', (tester) async {
+    await _pump(tester, []);
+    await tester.tap(find.text('Crear grupo'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), ' Depto ');
+    await tester.tap(find.text('Crear'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_groups.calls, ['create Depto']);
+    expect(find.widgetWithText(AppBar, 'Depto'), findsOneWidget);
+  });
+
+  testWidgets('cancelar el diálogo no hace nada', (tester) async {
+    await _pump(tester, []);
+    await tester.tap(find.text('Unirme'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'abc');
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_groups.calls, isEmpty);
+  });
+
+  testWidgets('unirse con código inválido muestra el error', (tester) async {
+    await _pump(tester, []);
+    await tester.tap(find.text('Unirme'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'zzz999');
+    await tester.tap(find.widgetWithText(FilledButton, 'Unirme'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_groups.calls, ['join zzz999']);
+    expect(find.text('Código de invitación inválido'), findsOneWidget);
   });
 }

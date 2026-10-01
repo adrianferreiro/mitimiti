@@ -104,11 +104,21 @@ class FakeGroupsRepository implements GroupsRepository {
   @override
   Future<List<Group>> myGroups() async => groups;
 
-  @override
-  Future<Group> createGroup(String name) => throw UnimplementedError();
+  final calls = <String>[];
 
   @override
-  Future<Group> joinGroup(String code) => throw UnimplementedError();
+  Future<Group> createGroup(String name) async {
+    calls.add('create $name');
+    final group = Group(id: 'new', name: name, inviteCode: 'NEW123');
+    groups.add(group);
+    return group;
+  }
+
+  @override
+  Future<Group> joinGroup(String code) async {
+    calls.add('join $code');
+    throw const AppException('Código de invitación inválido');
+  }
 }
 
 GroupData sampleData({

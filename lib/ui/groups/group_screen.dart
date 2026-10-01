@@ -71,7 +71,10 @@ class _GroupScreenState extends State<GroupScreen> {
   Future<void> _reload() {
     if (!mounted) return Future.value();
     final future = widget.repository.load(widget.group.id);
-    setState(() => _data = future);
+    // Bloque con llaves: setState no acepta un callback que devuelva Future.
+    setState(() {
+      _data = future;
+    });
     return future.then((_) {}, onError: (_) {});
   }
 
