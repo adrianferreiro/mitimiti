@@ -57,7 +57,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Flujo de trabajo
 
-- Commitear directo en `main` (sin ramas) por ahora.
+- **`develop`**: rama de trabajo. Los cambios chicos se commitean directo acá.
+- **`feature/<nombre>`**: para cambios grandes o que llevan varios commits; sale de `develop` y vuelve a `develop` con un merge.
+- **`main`**: solo lo que se publica. Se mergea `develop` → `main` al sacar un build para TestFlight o las tiendas.
 
 ## Pruebas
 
