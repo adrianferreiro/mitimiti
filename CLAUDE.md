@@ -41,6 +41,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Original del logo: `assets/branding/logo_source.png`. De ahí salen `icon.png` (iOS y ícono clásico, sin transparencia), `icon_android_foreground.png` (ícono adaptable), `splash.png` / `splash_android12.png` y `logo_full.png` (login): el símbolo va solo sobre el azul `#1C2233`; el texto "Mitimiti" solo en el login.
 - Si cambian esas imágenes, regenerar: `dart run flutter_launcher_icons` (config en `flutter_launcher_icons.yaml`) y `dart run flutter_native_splash:create` (config en `flutter_native_splash.yaml`).
 
+## Distribución
+
+- **Una sola app** (`com.adrianferreiro.mitimiti`) y TestFlight para las betas. Sin app "beta" aparte ni flavors mientras haya un solo backend de Supabase. Cuando se use en serio: crear un Supabase de producción (el actual pasa a ser staging) y elegir ambiente al compilar con `--dart-define-from-file`; flavors solo si hace falta tener beta y producción instaladas a la vez.
+- **Número de build:** subir el `+N` de `version` en `pubspec.yaml` en cada APK o build de TestFlight (Apple rechaza números repetidos).
+- **Android (QA por APK):** `flutter build apk --release`, firmado con la keystore de debug de la máquina (`~/.android/debug.keystore`). Un APK de otra máquina tiene otra firma y no se instala encima del anterior: el QA tendría que desinstalar (y perder la sesión). Para evitarlo, copiar esa keystore entre máquinas o, antes de publicar, crear una keystore de release.
+- **iOS / TestFlight:** Team `822QP5S5Y9`, firma automática, `ITSAppUsesNonExemptEncryption = false` en `Info.plist`. Proceso: `flutter build ipa --release` → subir `build/ios/ipa/*.ipa` con Transporter → asignar el build a los grupos en TestFlight. Testers internos sin revisión; externos requieren revisión de Apple y un usuario de prueba para iniciar sesión. En otra Mac: Xcode con el Apple ID de la cuenta logueado (Settings → Accounts) para que la firma automática genere el certificado.
+- **Estado (2026-09-30):** primera subida a TestFlight en curso. Hecho: proyecto listo (versión `1.0.0+3`). Falta: registrar el App ID en developer.apple.com (en curso), crear la app en App Store Connect (nombre "mitimiti", SKU `mitimiti`), generar el `.ipa`, subirlo y agregar testers. Actualizar esta línea al avanzar.
+
+## Flujo de trabajo
+
+- Commitear directo en `main` (sin ramas) por ahora.
+
 ## Pruebas
 
 - **No generar tests** (ni unitarios, ni de widgets, ni de integración) y **no ejecutar pruebas**: nada de `flutter test`, capturas, builds o consultas SQL para verificar cambios. Las pruebas las hace el usuario.
