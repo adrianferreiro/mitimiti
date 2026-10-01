@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../data/app_exception.dart';
 import '../../data/auth_repository.dart';
 import '../theme.dart';
+import 'reset_password_screen.dart';
 
 /// Ingreso y registro con email y contraseña.
 class LoginScreen extends StatefulWidget {
@@ -60,6 +61,18 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _forgotPassword() {
+    setState(() => _error = null);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ResetPasswordScreen(
+          auth: widget.auth,
+          initialEmail: _email.text.trim(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -203,6 +216,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : '¿No tenés cuenta? Registrate',
                           ),
                         ),
+                        if (!_registering)
+                          TextButton(
+                            onPressed: _busy ? null : _forgotPassword,
+                            child: const Text('¿Olvidaste tu contraseña?'),
+                          ),
                       ],
                     ),
                   ),

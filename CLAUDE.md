@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Decisiones tomadas (MVP)
 
 - Backend: **Supabase** (proyecto `kzfrtssvigmeitwiicyx`). URL y publishable key en `lib/config.dart` (públicas por diseño; la seguridad la da RLS).
-- Auth: **email + contraseña, sin confirmación de email** ("Confirm email" desactivado en el dashboard) para no depender de SMTP en el MVP. Sin SMTP no hay "olvidé mi contraseña": se resetea a mano desde el dashboard. Logueado sí se puede cambiar (Mi cuenta). Más adelante: SMTP propio + código por email.
+- Auth: **email + contraseña, sin confirmación de email** ("Confirm email" desactivado en el dashboard). Logueado se cambia la contraseña desde Mi cuenta. "¿Olvidaste tu contraseña?" (`ResetPasswordScreen`) manda un **código** por email (`resetPasswordForEmail` → `verifyOTP` tipo `recovery` → `updateUser`), sin deep links: la plantilla "Reset Password" del dashboard tiene que incluir `{{ .Token }}` y para usuarios reales hace falta SMTP propio (issue #3). Mientras dura la recuperación, `AuthRepository` no avisa el inicio de sesión que genera el código, así la app no salta a los grupos antes de guardar la contraseña nueva.
 - Moneda única: **ARS**. Montos siempre como `int` en centavos, nunca `double`.
 - Saldar deudas se registra como un `Settlement`; nunca se borran ni modifican gastos para cerrar el balance.
 
