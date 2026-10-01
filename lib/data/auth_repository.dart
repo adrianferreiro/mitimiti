@@ -12,6 +12,12 @@ class AuthRepository {
   /// Id del usuario con sesión iniciada, o `null` si no hay sesión.
   String? get currentUserId => _auth.currentUser?.id;
 
+  String? get currentEmail => _auth.currentUser?.email;
+
+  /// Cambia la contraseña del usuario con sesión iniciada (no necesita email).
+  Future<void> changePassword(String newPassword) =>
+      _guard(() => _auth.updateUser(UserAttributes(password: newPassword)));
+
   /// Emite cada vez que cambia si hay una sesión iniciada.
   Stream<bool> get signedInChanges =>
       _auth.onAuthStateChange.map((state) => state.session != null);
@@ -51,6 +57,8 @@ class AuthRepository {
     'user_already_exists' ||
     'email_exists' => 'Ya existe una cuenta con ese email.',
     'weak_password' => 'La contraseña es muy débil (mínimo 6 caracteres).',
+    'same_password' =>
+      'La contraseña nueva tiene que ser distinta a la actual.',
     'email_address_invalid' || 'validation_failed' => 'El email no es válido.',
     'over_request_rate_limit' ||
     'over_email_send_rate_limit' => 'Demasiados intentos. Probá en un rato.',

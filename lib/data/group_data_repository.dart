@@ -221,10 +221,41 @@ class GroupDataRepository {
     date: DateTime.parse(row['settled_on'] as String),
   );
 
-  Future<T> _guard<T>(Future<T> Function() action) async {
+  Future<void> addCategory(String groupId, String name) => _guard(
+    () => _db.from('categories').insert({'group_id': groupId, 'name': name}),
+    onDuplicate: 'Ya existe una categoría con ese nombre.',
+  );
+
+  Future<void> renameCategory(String categoryId, String name) => _guard(
+    () => _db.from('categories').update({'name': name}).eq('id', categoryId),
+    onDuplicate: 'Ya existe una categoría con ese nombre.',
+  );
+
+  /// La base no deja borrar una categoría que tenga gastos (FK).
+  Future<void> deleteCategory(String categoryId) => _guard(
+    () => _db.from('categories').delete().eq('id', categoryId),
+    onForeignKey:
+        'No se puede borrar: hay gastos con esta categoría. '
+        'Cambiales la categoría primero.',
+  );
+
+  /// Traduce errores de Postgres a mensajes para el usuario. [onDuplicate]
+  /// es para violaciones de unicidad (23505) y [onForeignKey] para FKs
+  /// (23503).
+  Future<T> _guard<T>(
+    Future<T> Function() action, {
+    String? onDuplicate,
+    String? onForeignKey,
+  }) async {
     try {
       return await action();
     } on PostgrestException catch (e) {
+      if (e.code == '23505' && onDuplicate != null) {
+        throw AppException(onDuplicate);
+      }
+      if (e.code == '23503' && onForeignKey != null) {
+        throw AppException(onForeignKey);
+      }
       throw AppException('No se pudo completar la operación: ${e.message}');
     }
   }

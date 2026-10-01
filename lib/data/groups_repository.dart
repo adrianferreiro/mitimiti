@@ -33,6 +33,38 @@ class GroupsRepository {
     return _fromRow(row);
   });
 
+  Future<Group> renameGroup(String groupId, String name) => _guard(() async {
+    final row = await _db
+        .from('groups')
+        .update({'name': name})
+        .eq('id', groupId)
+        .select('id, name, invite_code')
+        .single();
+    return _fromRow(row);
+  });
+
+  /// Saca al usuario actual del grupo. La base lo impide si tiene gastos o
+  /// pagos registrados en el grupo (las FKs apuntan a su membresía): salir
+  /// dejaría mal el saldo de los demás.
+  Future<void> leaveGroup(String groupId) => _guard(() async {
+    final userId = _db.auth.currentUser?.id;
+    if (userId == null) throw const AppException('No hay sesión iniciada.');
+    try {
+      await _db
+          .from('group_members')
+          .delete()
+          .eq('group_id', groupId)
+          .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      if (e.code == '23503') {
+        throw const AppException(
+          'No podés salir: tenés gastos o pagos registrados en este grupo.',
+        );
+      }
+      rethrow;
+    }
+  });
+
   static Group _fromRow(Map<String, dynamic> row) => Group(
     id: row['id'] as String,
     name: row['name'] as String,

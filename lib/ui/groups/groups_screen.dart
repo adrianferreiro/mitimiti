@@ -4,7 +4,10 @@ import '../../data/app_exception.dart';
 import '../../data/auth_repository.dart';
 import '../../data/group_data_repository.dart';
 import '../../data/groups_repository.dart';
+import '../../data/profile_repository.dart';
 import '../../domain/models/group.dart';
+import '../account/account_screen.dart';
+import '../dialogs.dart';
 import '../theme.dart';
 import 'group_screen.dart';
 
@@ -16,11 +19,13 @@ class GroupsScreen extends StatefulWidget {
     required this.auth,
     required this.groups,
     required this.groupData,
+    required this.profile,
   });
 
   final AuthRepository auth;
   final GroupsRepository groups;
   final GroupDataRepository groupData;
+  final ProfileRepository profile;
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -82,19 +87,30 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  void _open(Group group) {
+  Future<void> _open(Group group) async {
     final userId = widget.auth.currentUserId;
     if (userId == null) return;
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GroupScreen(
           group: group,
           repository: widget.groupData,
+          groups: widget.groups,
+          auth: widget.auth,
+          profile: widget.profile,
           currentUserId: userId,
         ),
       ),
     );
+    // Al volver: el grupo pudo cambiar de nombre o el usuario pudo salir.
+    if (mounted) _reload();
   }
+
+  void _openAccount() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => AccountScreen(auth: widget.auth, profile: widget.profile),
+    ),
+  );
 
   void _showError(String message) {
     if (!mounted) return;
@@ -108,15 +124,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
     required String hint,
     required String action,
     bool uppercase = false,
-  }) => showDialog<String>(
-    context: context,
-    builder: (_) => _TextPromptDialog(
-      title: title,
-      label: label,
-      hint: hint,
-      action: action,
-      uppercase: uppercase,
-    ),
+  }) => showTextPrompt(
+    context,
+    title: title,
+    label: label,
+    hint: hint,
+    action: action,
+    uppercase: uppercase,
   );
 
   @override
@@ -126,9 +140,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
         title: const Text('Mis grupos'),
         actions: [
           IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: widget.auth.signOut,
+            tooltip: 'Mi cuenta',
+            icon: const Icon(Icons.person_outline),
+            onPressed: _openAccount,
           ),
           const SizedBox(width: 12),
         ],
@@ -209,69 +223,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Diálogo con un campo de texto. Es dueño de su controller: si lo liberara
-/// quien abre el diálogo apenas vuelve `showDialog`, la animación de cierre
-/// todavía lo usaría (y explota con "used after being disposed").
-class _TextPromptDialog extends StatefulWidget {
-  const _TextPromptDialog({
-    required this.title,
-    required this.label,
-    required this.hint,
-    required this.action,
-    required this.uppercase,
-  });
-
-  final String title;
-  final String label;
-  final String hint;
-  final String action;
-  final bool uppercase;
-
-  @override
-  State<_TextPromptDialog> createState() => _TextPromptDialogState();
-}
-
-class _TextPromptDialogState extends State<_TextPromptDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final text = _controller.text.trim();
-    if (text.isNotEmpty) Navigator.of(context).pop(text);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        textCapitalization: widget.uppercase
-            ? TextCapitalization.characters
-            : TextCapitalization.sentences,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          hintText: widget.hint,
-        ),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(onPressed: _submit, child: Text(widget.action)),
-      ],
     );
   }
 }

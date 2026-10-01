@@ -18,6 +18,7 @@ Future<void> _pump(WidgetTester tester, List<Group> groups) async {
         auth: FakeAuthRepository()..currentUserId = 'juan',
         groups: _groups,
         groupData: FakeGroupDataRepository(),
+        profile: FakeProfileRepository(),
       ),
     ),
   );

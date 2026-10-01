@@ -2,6 +2,7 @@ import 'package:mitimiti/data/app_exception.dart';
 import 'package:mitimiti/data/auth_repository.dart';
 import 'package:mitimiti/data/group_data_repository.dart';
 import 'package:mitimiti/data/groups_repository.dart';
+import 'package:mitimiti/data/profile_repository.dart';
 import 'package:mitimiti/domain/models/group.dart';
 import 'package:mitimiti/domain/models/category.dart';
 import 'package:mitimiti/domain/models/expense.dart';
@@ -60,6 +61,18 @@ class FakeGroupDataRepository implements GroupDataRepository {
   @override
   Future<void> deleteSettlement(String settlementId) async =>
       calls.add('deleteSettlement $settlementId');
+
+  @override
+  Future<void> addCategory(String groupId, String name) async =>
+      calls.add('addCategory $groupId $name');
+
+  @override
+  Future<void> renameCategory(String categoryId, String name) async =>
+      calls.add('renameCategory $categoryId $name');
+
+  @override
+  Future<void> deleteCategory(String categoryId) async =>
+      calls.add('deleteCategory $categoryId');
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -71,6 +84,13 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   String? currentUserId;
+
+  @override
+  String? currentEmail = 'juan@mail.com';
+
+  @override
+  Future<void> changePassword(String newPassword) async =>
+      calls.add('changePassword $newPassword');
 
   @override
   Stream<bool> get signedInChanges => const Stream.empty();
@@ -93,7 +113,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signOut() async {}
+  Future<void> signOut() async => calls.add('signOut');
 }
 
 class FakeGroupsRepository implements GroupsRepository {
@@ -115,9 +135,42 @@ class FakeGroupsRepository implements GroupsRepository {
   }
 
   @override
+  Future<Group> renameGroup(String groupId, String name) async {
+    calls.add('rename $groupId $name');
+    final i = groups.indexWhere((g) => g.id == groupId);
+    final renamed = Group(
+      id: groupId,
+      name: name,
+      inviteCode: groups[i].inviteCode,
+    );
+    groups[i] = renamed;
+    return renamed;
+  }
+
+  @override
+  Future<void> leaveGroup(String groupId) async {
+    calls.add('leave $groupId');
+    groups.removeWhere((g) => g.id == groupId);
+  }
+
+  @override
   Future<Group> joinGroup(String code) async {
     calls.add('join $code');
     throw const AppException('Código de invitación inválido');
+  }
+}
+
+class FakeProfileRepository implements ProfileRepository {
+  String name = 'Juan';
+  final calls = <String>[];
+
+  @override
+  Future<String> myDisplayName() async => name;
+
+  @override
+  Future<void> updateDisplayName(String name) async {
+    calls.add('updateName $name');
+    this.name = name;
   }
 }
 

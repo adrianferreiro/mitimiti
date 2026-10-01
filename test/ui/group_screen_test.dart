@@ -17,6 +17,9 @@ void main() {
         home: GroupScreen(
           group: const Group(id: 'g', name: 'Depto', inviteCode: 'ABC123'),
           repository: repo,
+          groups: FakeGroupsRepository([]),
+          auth: FakeAuthRepository()..currentUserId = 'juan',
+          profile: FakeProfileRepository(),
           currentUserId: 'juan',
         ),
       ),

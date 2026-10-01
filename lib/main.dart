@@ -6,6 +6,7 @@ import 'config.dart';
 import 'data/auth_repository.dart';
 import 'data/group_data_repository.dart';
 import 'data/groups_repository.dart';
+import 'data/profile_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ Future<void> main() async {
       auth: AuthRepository(client.auth),
       groups: GroupsRepository(client),
       groupData: GroupDataRepository(client),
+      profile: ProfileRepository(client),
     ),
   );
 }
