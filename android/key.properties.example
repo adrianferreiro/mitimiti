@@ -1,0 +1,8 @@
+# Copiar a android/key.properties (no se versiona) y completar.
+# El .jks es la upload key de mitimiti: guardarlo fuera del repo (gestor de
+# contraseñas / almacenamiento privado) y copiarlo a cada máquina que compile.
+# storeFile tiene que ser una ruta absoluta (no usar ~).
+storePassword=
+keyPassword=
+keyAlias=upload
+storeFile=/Users/TU_USUARIO/mitimiti-upload.jks
