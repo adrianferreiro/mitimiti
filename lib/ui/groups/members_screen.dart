@@ -30,8 +30,11 @@ class MembersScreen extends StatelessWidget {
           for (final m in members)
             ListTile(
               leading: CircleAvatar(
+                backgroundColor: memberColor(isMe: m.userId == currentUserId),
+                foregroundColor: AppColors.ink,
                 child: Text(
                   m.displayName.isEmpty ? '?' : m.displayName[0].toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
               title: Text(
@@ -74,7 +77,7 @@ class InviteCodeCard extends StatelessWidget {
           SelectableText(
             inviteCode,
             style: theme.textTheme.headlineMedium?.copyWith(
-              color: AppColors.lime,
+              color: AppColors.accent,
               letterSpacing: 6,
             ),
           ),
@@ -90,7 +93,7 @@ class InviteCodeCard extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.lime,
+              backgroundColor: AppColors.accent,
               foregroundColor: AppColors.ink,
             ),
             onPressed: () => _copy(context),

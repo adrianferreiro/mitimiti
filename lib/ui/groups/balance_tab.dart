@@ -181,7 +181,7 @@ class BalanceTab extends StatelessWidget {
                 for (final id in memberIds)
                   ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.limeTint,
+                      backgroundColor: memberColor(isMe: id == currentUserId),
                       foregroundColor: AppColors.ink,
                       child: Text(
                         data.memberName(id).isEmpty

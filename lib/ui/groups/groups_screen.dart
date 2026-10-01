@@ -185,7 +185,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                       ),
                       leading: const CircleAvatar(
                         radius: 22,
-                        backgroundColor: AppColors.lime,
+                        backgroundColor: AppColors.accent,
                         foregroundColor: AppColors.ink,
                         child: Icon(Icons.group_outlined),
                       ),

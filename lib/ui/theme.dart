@@ -1,40 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Paleta de mitimiti: fondo menta muy pálido, tarjetas blancas, lima suave
-/// como acento y negro ("tinta") para texto, botones y tarjetas destacadas.
+/// Paleta de mitimiti, tomada del logo (assets/branding/logo_source.png):
+/// azul marino ("tinta") para texto, botones y tarjetas destacadas, verde
+/// agua como acento, coral para deudas, sobre un fondo verde agua muy pálido
+/// con tarjetas blancas.
 abstract final class AppColors {
   /// Fondo de las pantallas.
-  static const background = Color(0xFFEFF6E4);
+  static const background = Color(0xFFEDF7F3);
 
   /// Tarjetas, campos y botones circulares.
   static const surface = Color(0xFFFFFFFF);
 
   /// Campo de texto con foco.
-  static const surfaceFocused = Color(0xFFF7FCEB);
+  static const surfaceFocused = Color(0xFFF4FBF8);
 
   /// Bordes suaves y divisores.
-  static const outline = Color(0xFFE1EAD3);
+  static const outline = Color(0xFFDCEBE5);
 
-  /// Acento: pestaña activa, tarjeta de saldo, barras, login.
-  static const lime = Color(0xFFC3E86B);
+  /// Verde agua del logo: pestaña activa, tarjeta de saldo, chips, avatares.
+  static const accent = Color(0xFF36D2AF);
 
-  /// Lima más claro para fondos de barras y resaltados suaves.
-  static const limeTint = Color(0xFFE4F4BE);
+  /// Verde agua claro para fondos de barras y resaltados suaves.
+  static const accentTint = Color(0xFFD3F4EB);
 
-  /// Negro: texto, botón principal, tarjeta destacada, íconos de categoría.
-  static const ink = Color(0xFF111410);
+  /// Coral del logo (la otra persona del símbolo).
+  static const coral = Color(0xFFFD835E);
+
+  /// Azul marino del logo: texto, botón principal, tarjeta destacada,
+  /// íconos de categoría, splash y login.
+  static const ink = Color(0xFF1C2233);
 
   /// Texto e íconos sobre [ink].
   static const onInk = Color(0xFFFFFFFF);
 
-  static const textMuted = Color(0xFF6B7366);
+  static const textMuted = Color(0xFF5E6678);
 
-  /// "Le deben".
-  static const positive = Color(0xFF2E7D1F);
+  /// "Le deben": verde agua oscuro, legible sobre blanco.
+  static const positive = Color(0xFF128A6C);
 
-  /// "Debe" y errores.
-  static const red = Color(0xFFD0392B);
+  /// "Debe" y errores: coral oscuro, legible sobre blanco.
+  static const red = Color(0xFFD9542F);
 }
 
 const _font = 'PlusJakartaSans';
@@ -49,11 +55,11 @@ ThemeData buildAppTheme() {
     brightness: Brightness.light,
     primary: AppColors.ink,
     onPrimary: AppColors.onInk,
-    primaryContainer: AppColors.lime,
+    primaryContainer: AppColors.accent,
     onPrimaryContainer: AppColors.ink,
-    secondary: AppColors.lime,
+    secondary: AppColors.accent,
     onSecondary: AppColors.ink,
-    secondaryContainer: AppColors.lime,
+    secondaryContainer: AppColors.accent,
     onSecondaryContainer: AppColors.ink,
     tertiary: AppColors.positive,
     onTertiary: AppColors.onInk,
@@ -71,7 +77,7 @@ ThemeData buildAppTheme() {
     outlineVariant: AppColors.outline,
     inverseSurface: AppColors.ink,
     onInverseSurface: AppColors.onInk,
-    inversePrimary: AppColors.lime,
+    inversePrimary: AppColors.accent,
   );
 
   final base = ThemeData(
@@ -175,7 +181,7 @@ ThemeData buildAppTheme() {
       shape: pill,
     ),
     // Pestañas como en "Today / Weekly / Monthly": la activa es una píldora
-    // lima.
+    // verde agua.
     tabBarTheme: TabBarThemeData(
       labelColor: AppColors.ink,
       unselectedLabelColor: AppColors.textMuted,
@@ -186,7 +192,7 @@ ThemeData buildAppTheme() {
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
       splashFactory: NoSplash.splashFactory,
       indicator: BoxDecoration(
-        color: AppColors.lime,
+        color: AppColors.accent,
         borderRadius: BorderRadius.circular(999),
       ),
     ),
@@ -230,7 +236,7 @@ ThemeData buildAppTheme() {
     ),
     textSelectionTheme: const TextSelectionThemeData(
       cursorColor: AppColors.ink,
-      selectionColor: AppColors.limeTint,
+      selectionColor: AppColors.accentTint,
       selectionHandleColor: AppColors.ink,
     ),
     dropdownMenuTheme: DropdownMenuThemeData(
@@ -258,7 +264,7 @@ ThemeData buildAppTheme() {
     datePickerTheme: DatePickerThemeData(
       backgroundColor: AppColors.surface,
       surfaceTintColor: Colors.transparent,
-      headerBackgroundColor: AppColors.lime,
+      headerBackgroundColor: AppColors.accent,
       headerForegroundColor: AppColors.ink,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       todayBorder: const BorderSide(color: AppColors.ink, width: 1.5),
@@ -276,11 +282,11 @@ ThemeData buildAppTheme() {
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.ink,
-      linearTrackColor: AppColors.limeTint,
+      linearTrackColor: AppColors.accentTint,
       circularTrackColor: Colors.transparent,
     ),
     bannerTheme: const MaterialBannerThemeData(
-      backgroundColor: AppColors.limeTint,
+      backgroundColor: AppColors.accentTint,
     ),
     // Botones de ícono en círculo blanco, como la campana de la referencia.
     iconButtonTheme: IconButtonThemeData(
@@ -294,7 +300,13 @@ ThemeData buildAppTheme() {
   );
 }
 
-/// Tarjeta destacada (total, saldo): fondo negro o lima, sin borde.
+/// Color del avatar de un miembro: verde agua para uno mismo y coral para
+/// los demás, como las dos personas del logo.
+Color memberColor({required bool isMe}) =>
+    isMe ? AppColors.accent : AppColors.coral;
+
+/// Tarjeta destacada (total, saldo): fondo azul marino o verde agua, sin
+/// borde.
 class HighlightCard extends StatelessWidget {
   const HighlightCard({
     super.key,
@@ -305,7 +317,8 @@ class HighlightCard extends StatelessWidget {
 
   final Widget child;
 
-  /// `true`: negra con texto blanco. `false`: lima con texto negro.
+  /// `true`: azul marino con texto blanco. `false`: verde agua con texto
+  /// azul marino.
   final bool dark;
   final EdgeInsets padding;
 
@@ -314,7 +327,7 @@ class HighlightCard extends StatelessWidget {
     final foreground = dark ? AppColors.onInk : AppColors.ink;
     return Container(
       decoration: BoxDecoration(
-        color: dark ? AppColors.ink : AppColors.lime,
+        color: dark ? AppColors.ink : AppColors.accent,
         borderRadius: BorderRadius.circular(28),
       ),
       padding: padding,

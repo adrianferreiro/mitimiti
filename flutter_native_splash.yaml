@@ -1,0 +1,13 @@
+# Genera el splash nativo: dart run flutter_native_splash:create
+# Mismo azul que el login, para que la transición no tenga cortes.
+flutter_native_splash:
+  color: "#1C2233"
+  image: assets/branding/splash.png
+  android_12:
+    color: "#1C2233"
+    image: assets/branding/splash_android12.png
+    icon_background_color: "#1C2233"
+  ios: true
+  android: true
+  web: false
+  fullscreen: false

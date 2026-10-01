@@ -117,7 +117,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: AppColors.lime,
+                      backgroundColor: AppColors.accent,
                       foregroundColor: AppColors.ink,
                       child: Text(
                         name == null || name.isEmpty

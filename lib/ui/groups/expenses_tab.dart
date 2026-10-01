@@ -77,7 +77,7 @@ class ExpensesTab extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.lime,
+                      color: AppColors.accent,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(

@@ -1,0 +1,11 @@
+# Genera los íconos de la app: dart run flutter_launcher_icons
+# Fuentes en assets/branding/ (derivadas de logo_source.png).
+flutter_launcher_icons:
+  image_path: assets/branding/icon.png
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  # Ícono adaptable (Android 8+): frente con el símbolo y fondo azul del logo.
+  adaptive_icon_background: "#1C2233"
+  adaptive_icon_foreground: assets/branding/icon_android_foreground.png
+  min_sdk_android: 21
