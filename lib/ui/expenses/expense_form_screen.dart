@@ -170,7 +170,6 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
               decoration: const InputDecoration(
                 labelText: 'Monto',
                 prefixText: r'$ ',
-                border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -188,17 +187,13 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
               decoration: const InputDecoration(
                 labelText: 'Descripción (opcional)',
                 hintText: 'Ej: compra del mes',
-                border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _categoryId,
-              decoration: const InputDecoration(
-                labelText: 'Categoría',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Categoría'),
               items: [
                 for (final c in data.categories)
                   DropdownMenuItem(value: c.id, child: Text(c.name)),
@@ -209,10 +204,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _paidBy,
-              decoration: const InputDecoration(
-                labelText: 'Pagó',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Pagó'),
               items: [
                 for (final m in data.members)
                   DropdownMenuItem(
@@ -233,7 +225,6 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Fecha',
-                  border: OutlineInputBorder(),
                   suffixIcon: Icon(Icons.calendar_today),
                 ),
                 child: Text(formatDate(_date)),

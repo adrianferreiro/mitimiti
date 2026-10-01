@@ -7,6 +7,7 @@ import '../../domain/models/group.dart';
 import '../../domain/models/settlement.dart';
 import '../../domain/money.dart';
 import '../format.dart';
+import '../theme.dart';
 import 'members_screen.dart';
 
 /// Quién le debe a quién, cuánto pagó cada uno y los pagos registrados.
@@ -114,7 +115,7 @@ class BalanceTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onChanged,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
           if (memberIds.length < 2) ...[
             const Text(
@@ -126,40 +127,69 @@ class BalanceTab extends StatelessWidget {
             InviteCodeCard(inviteCode: group.inviteCode),
             const SizedBox(height: 16),
           ],
-          Text('Quién le debe a quién', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          _SectionTitle('Quién le debe a quién'),
           if (debts.isEmpty)
-            const Card(
-              child: ListTile(
-                leading: Icon(Icons.check_circle_outline),
-                title: Text('Están a mano'),
+            HighlightCard(
+              dark: false,
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, size: 28),
+                  const SizedBox(width: 12),
+                  Text('Están a mano', style: theme.textTheme.titleMedium),
+                ],
               ),
             )
           else
             for (final d in debts)
-              Card(
-                child: ListTile(
-                  title: Text(
-                    '${_name(d.fromUserId)} le debe a ${_name(d.toUserId)}',
-                  ),
-                  subtitle: Text(
-                    formatCents(d.amountCents),
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  trailing: FilledButton.tonal(
-                    onPressed: () => _settle(context, d),
-                    child: const Text('Saldar'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: HighlightCard(
+                  dark: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_name(d.fromUserId)} le debe a ${_name(d.toUserId)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              formatCents(d.amountCents),
+                              style: theme.textTheme.headlineMedium,
+                            ),
+                          ),
+                          FilledButton(
+                            onPressed: () => _settle(context, d),
+                            child: const Text('Saldar'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-          const SizedBox(height: 24),
-          Text('Por persona', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          _SectionTitle('Por persona'),
           Card(
             child: Column(
               children: [
                 for (final id in memberIds)
                   ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.limeTint,
+                      foregroundColor: AppColors.ink,
+                      child: Text(
+                        data.memberName(id).isEmpty
+                            ? '?'
+                            : data.memberName(id)[0].toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
                     title: Text(_name(id)),
                     subtitle: Text('Pagó ${formatCents(paid[id]!)}'),
                     trailing: _BalanceLabel(cents: balances[id]!),
@@ -168,9 +198,8 @@ class BalanceTab extends StatelessWidget {
             ),
           ),
           if (data.settlements.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text('Pagos registrados', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            _SectionTitle('Pagos registrados'),
             Card(
               child: Column(
                 children: [
@@ -222,7 +251,7 @@ class _BalanceLabel extends StatelessWidget {
           formatCents(cents.abs()),
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: owed ? colors.primary : colors.error,
+            color: owed ? AppColors.positive : colors.error,
           ),
         ),
       ],
@@ -305,4 +334,16 @@ class _SettleDialogState extends State<_SettleDialog> {
       ],
     );
   }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(text, style: Theme.of(context).textTheme.titleMedium),
+  );
 }

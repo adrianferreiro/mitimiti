@@ -5,6 +5,7 @@ import '../../data/auth_repository.dart';
 import '../../data/group_data_repository.dart';
 import '../../data/groups_repository.dart';
 import '../../domain/models/group.dart';
+import '../theme.dart';
 import 'group_screen.dart';
 
 /// Lista de grupos del usuario, con opciones para crear uno o unirse con un
@@ -129,6 +130,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             icon: const Icon(Icons.logout),
             onPressed: widget.auth.signOut,
           ),
+          const SizedBox(width: 12),
         ],
       ),
       body: FutureBuilder<List<Group>>(
@@ -158,13 +160,25 @@ class _GroupsScreenState extends State<GroupsScreen> {
               await _myGroups;
             },
             child: ListView(
+              padding: const EdgeInsets.all(16),
               children: [
                 for (final group in groups)
-                  ListTile(
-                    leading: const Icon(Icons.group),
-                    title: Text(group.name),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _open(group),
+                  Card(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      leading: const CircleAvatar(
+                        radius: 22,
+                        backgroundColor: AppColors.lime,
+                        foregroundColor: AppColors.ink,
+                        child: Icon(Icons.group_outlined),
+                      ),
+                      title: Text(group.name),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _open(group),
+                    ),
                   ),
               ],
             ),

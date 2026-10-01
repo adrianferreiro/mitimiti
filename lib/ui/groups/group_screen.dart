@@ -7,6 +7,7 @@ import '../../domain/models/expense.dart';
 import '../../domain/models/group.dart';
 import '../../domain/summary.dart';
 import '../expenses/expense_form_screen.dart';
+import '../theme.dart';
 import 'balance_tab.dart';
 import 'expenses_tab.dart';
 import 'members_screen.dart';
@@ -125,13 +126,27 @@ class _GroupScreenState extends State<GroupScreen> {
                   icon: const Icon(Icons.group_add_outlined),
                   onPressed: data == null ? null : () => _openMembers(data),
                 ),
+                const SizedBox(width: 12),
               ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Gastos'),
-                  Tab(text: 'Resumen'),
-                  Tab(text: 'Saldo'),
-                ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(64),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const TabBar(
+                      tabs: [
+                        Tab(text: 'Gastos', height: 44),
+                        Tab(text: 'Resumen', height: 44),
+                        Tab(text: 'Saldo', height: 44),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
             floatingActionButton: data == null

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../domain/models/group.dart';
 import '../../domain/models/member.dart';
+import '../theme.dart';
 
 /// Miembros del grupo y código para invitar a otros.
 class MembersScreen extends StatelessWidget {
@@ -60,35 +61,43 @@ class InviteCodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text('Código de invitación', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SelectableText(
-              inviteCode,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                letterSpacing: 4,
-                fontWeight: FontWeight.bold,
-              ),
+    return HighlightCard(
+      child: Column(
+        children: [
+          Text(
+            'Código de invitación',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: AppColors.onInk,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasale este código a quien quieras sumar al grupo. '
-              'Lo ingresa en "Unirme".',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            inviteCode,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: AppColors.lime,
+              letterSpacing: 6,
             ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => _copy(context),
-              icon: const Icon(Icons.copy),
-              label: const Text('Copiar código'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pasale este código a quien quieras sumar al grupo. '
+            'Lo ingresa en "Unirme".',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.onInk.withValues(alpha: 0.7),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.lime,
+              foregroundColor: AppColors.ink,
+            ),
+            onPressed: () => _copy(context),
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('Copiar código'),
+          ),
+        ],
       ),
     );
   }

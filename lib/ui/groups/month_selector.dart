@@ -20,7 +20,7 @@ class MonthSelector extends StatelessWidget {
     final theme = Theme.of(context);
     final month = this.month;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           IconButton(

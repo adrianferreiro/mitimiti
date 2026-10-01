@@ -4,6 +4,7 @@ import '../../data/group_data_repository.dart';
 import '../../domain/balance.dart';
 import '../../domain/money.dart';
 import '../../domain/summary.dart';
+import '../theme.dart';
 import 'month_selector.dart';
 
 /// Cuánto se gastó en el mes elegido, por categoría y por persona.
@@ -37,10 +38,10 @@ class SummaryTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 88),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           MonthSelector(month: month, onChanged: onMonthChanged),
-          const Divider(height: 1),
+          const SizedBox(height: 12),
           if (expenses.isEmpty)
             const Padding(
               padding: EdgeInsets.all(32),
@@ -50,14 +51,27 @@ class SummaryTab extends StatelessWidget {
               ),
             )
           else ...[
-            ListTile(
-              title: Text('Total gastado', style: theme.textTheme.titleMedium),
-              subtitle: members > 1
-                  ? Text('${formatCents(total ~/ members)} por persona')
-                  : null,
-              trailing: Text(
-                formatCents(total),
-                style: theme.textTheme.titleLarge,
+            HighlightCard(
+              dark: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Total gastado', style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatCents(total),
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                  if (members > 1) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${formatCents(total ~/ members)} por persona',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             _Section(
@@ -100,12 +114,14 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.only(top: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

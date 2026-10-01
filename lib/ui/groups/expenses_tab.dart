@@ -4,7 +4,9 @@ import '../../data/group_data_repository.dart';
 import '../../domain/models/expense.dart';
 import '../../domain/money.dart';
 import '../../domain/summary.dart';
+import '../category_icon.dart';
 import '../format.dart';
+import '../theme.dart';
 import 'month_selector.dart';
 
 /// Gastos del grupo en el mes elegido, más recientes primero.
@@ -36,10 +38,10 @@ class ExpensesTab extends StatelessWidget {
       onRefresh: onRefresh,
       child: ListView(
         // Deja lugar para que el botón flotante no tape el último gasto.
-        padding: const EdgeInsets.only(bottom: 88),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           MonthSelector(month: month, onChanged: onMonthChanged),
-          const Divider(height: 1),
+          const SizedBox(height: 12),
           if (expenses.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
@@ -51,35 +53,82 @@ class ExpensesTab extends StatelessWidget {
               ),
             )
           else ...[
-            ListTile(
-              title: Text('Total gastado', style: theme.textTheme.titleMedium),
-              trailing: Text(
-                formatCents(total),
-                style: theme.textTheme.titleMedium,
+            HighlightCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total gastado',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onInk.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatCents(total),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: AppColors.onInk,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.lime,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      expenses.length == 1
+                          ? '1 gasto'
+                          : '${expenses.length} gastos',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Divider(height: 1),
-            for (final e in expenses)
-              ListTile(
-                title: Text(
-                  e.description.isEmpty
-                      ? data.categoryName(e.categoryId)
-                      : e.description,
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text('Movimientos', style: theme.textTheme.titleMedium),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  children: [
+                    for (final e in expenses)
+                      ListTile(
+                        leading: CategoryAvatar(
+                          categoryName: data.categoryName(e.categoryId),
+                        ),
+                        title: Text(
+                          e.description.isEmpty
+                              ? data.categoryName(e.categoryId)
+                              : e.description,
+                        ),
+                        subtitle: Text(
+                          [
+                            'Pagó ${data.memberName(e.paidBy)}',
+                            formatDate(e.date),
+                          ].join(' · '),
+                        ),
+                        trailing: Text(
+                          formatCents(e.amountCents),
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        onTap: () => onTapExpense(e),
+                      ),
+                  ],
                 ),
-                subtitle: Text(
-                  [
-                    if (e.description.isNotEmpty)
-                      data.categoryName(e.categoryId),
-                    'Pagó ${data.memberName(e.paidBy)}',
-                    formatDate(e.date),
-                  ].join(' · '),
-                ),
-                trailing: Text(
-                  formatCents(e.amountCents),
-                  style: theme.textTheme.titleSmall,
-                ),
-                onTap: () => onTapExpense(e),
               ),
+            ),
           ],
         ],
       ),

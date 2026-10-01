@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/app_exception.dart';
 import '../../data/auth_repository.dart';
+import '../theme.dart';
 
 /// Ingreso y registro con email y contraseña.
 class LoginScreen extends StatefulWidget {
@@ -63,7 +64,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Pantalla de bienvenida: todo en lima, como el onboarding de la
+    // referencia; los campos blancos resaltan sobre el fondo.
     return Scaffold(
+      backgroundColor: AppColors.lime,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -78,7 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'mitimiti',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.displaySmall,
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -90,10 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (_registering) ...[
                       TextFormField(
                         controller: _name,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre',
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: const InputDecoration(labelText: 'Nombre'),
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
                         validator: (v) => (v == null || v.trim().isEmpty)
@@ -104,10 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                     TextFormField(
                       controller: _email,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Email'),
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
@@ -121,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _password,
                       decoration: const InputDecoration(
                         labelText: 'Contraseña',
-                        border: OutlineInputBorder(),
                       ),
                       obscureText: true,
                       textInputAction: TextInputAction.done,
