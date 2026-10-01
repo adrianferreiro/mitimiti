@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Arquitectura
 
-- `lib/domain/`: Dart puro, sin imports de Flutter ni de Supabase. Es el corazón de la app y debe mantenerse testeable en aislamiento (`test/domain/`).
+- `lib/domain/`: Dart puro, sin imports de Flutter ni de Supabase. Es el corazón de la app.
   - `models/`: `Expense`, `Settlement`, `Category`, `Group`, `Member` (inmutables, validan en el constructor).
   - `money.dart`: `formatCents` ("$12.500,50") y `parseCents` (lo que escribe el usuario → centavos; coma decimal, punto de miles). Toda entrada/salida de montos pasa por acá.
   - `balance.dart`: `netBalances` calcula el saldo neto por miembro (`pagado − su parte + pagos enviados − pagos recibidos`; positivo = le deben). Cada gasto se reparte en partes iguales entre todos los miembros y **el que pagó absorbe los centavos sobrantes**, así la suma de saldos es siempre 0. `simplifyDebts` convierte saldos en transferencias sugeridas (mayor deudor ↔ mayor acreedor, desempate por id). `paidTotals` suma lo pagado por cada uno.
@@ -36,15 +36,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `lib/ui/theme.dart`: tema único claro estilo app de finanzas: fondo menta pálido (`AppColors.background`), tarjetas y campos blancos, lima suave (`AppColors.lime`) como acento (pestaña activa en píldora, tarjeta de saldo/resumen, login), negro (`AppColors.ink`) para texto, botones y tarjeta destacada; "le deben" en `AppColors.positive`, deudas/errores en `AppColors.red`. `HighlightCard` (negra o lima) para los totales; `lib/ui/category_icon.dart` asigna ícono por nombre de categoría. Tipografía Plus Jakarta Sans empaquetada en `assets/fonts/` (licencia OFL incluida). Usar `AppColors` / `Theme.of(context)` en vez de colores sueltos y no fijar bordes en cada `InputDecoration`.
 - `lib/app.dart`: `MaterialApp` que muestra login o la lista de grupos según `AuthRepository.signedInChanges`. `lib/main.dart` inicializa Supabase y arma los repositorios.
 
+## Pruebas
+
+- **No generar tests** (ni unitarios, ni de widgets, ni de integración) y **no ejecutar pruebas**: nada de `flutter test`, capturas, builds o consultas SQL para verificar cambios. Las pruebas las hace el usuario.
+- Al terminar un cambio, decir qué conviene probar en vez de probarlo.
+
 ## Comandos
 
 ```bash
 flutter pub get                          # instalar dependencias
 flutter run                              # correr en el dispositivo/emulador conectado
 flutter analyze                          # lint (flutter_lints, ver analysis_options.yaml)
-flutter test                             # todos los tests
-flutter test test/ui/login_screen_test.dart  # un archivo
-flutter test --plain-name "registro"     # tests cuyo nombre contiene el texto
 dart format .                            # formatear
 ```
 
