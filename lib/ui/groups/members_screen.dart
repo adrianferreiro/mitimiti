@@ -30,7 +30,9 @@ class MembersScreen extends StatelessWidget {
           for (final m in members)
             ListTile(
               leading: CircleAvatar(
-                backgroundColor: memberColor(isMe: m.userId == currentUserId),
+                backgroundColor: m.isActive
+                    ? memberColor(isMe: m.userId == currentUserId)
+                    : AppColors.outline,
                 foregroundColor: AppColors.ink,
                 child: Text(
                   m.displayName.isEmpty ? '?' : m.displayName[0].toUpperCase(),
@@ -42,6 +44,9 @@ class MembersScreen extends StatelessWidget {
                     ? '${m.displayName} (yo)'
                     : m.displayName,
               ),
+              subtitle: m.isActive
+                  ? null
+                  : const Text('Ya no está en el grupo'),
             ),
         ],
       ),

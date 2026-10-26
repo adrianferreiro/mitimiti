@@ -1,5 +1,5 @@
 /// Un gasto pagado por un miembro del grupo, repartido en partes iguales
-/// entre todos los miembros.
+/// entre los miembros que estaban en el grupo en su fecha.
 class Expense {
   Expense({
     required this.id,

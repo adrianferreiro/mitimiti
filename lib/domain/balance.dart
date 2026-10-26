@@ -44,9 +44,12 @@ Map<String, int> paidTotals({
 /// Positivo: el grupo le debe. Negativo: le debe al grupo.
 /// `neto = pagado − su parte + pagos enviados − pagos recibidos`.
 ///
-/// Cada gasto se reparte en partes iguales entre [memberIds]. Si el monto no
-/// es divisible, el que pagó absorbe los centavos sobrantes (los demás pagan
-/// `amount ~/ n`), así la suma de las partes es siempre exacta.
+/// Cada gasto se reparte en partes iguales entre los miembros de [memberIds]
+/// que seguían en el grupo en la fecha del gasto: los que figuran en [leftOn]
+/// participan solo de los gastos hasta ese día inclusive (quien pagó siempre
+/// participa). Si el monto no es divisible, el que pagó absorbe los centavos
+/// sobrantes (los demás pagan `amount ~/ n`), así la suma de las partes es
+/// siempre exacta.
 ///
 /// Lanza [ArgumentError] si un gasto o pago referencia a alguien que no está
 /// en [memberIds].
@@ -54,12 +57,12 @@ Map<String, int> netBalances({
   required List<String> memberIds,
   required List<Expense> expenses,
   List<Settlement> settlements = const [],
+  Map<String, DateTime> leftOn = const {},
 }) {
   if (memberIds.isEmpty) {
     throw ArgumentError.value(memberIds, 'memberIds', 'no puede estar vacío');
   }
   final balances = {for (final id in memberIds) id: 0};
-  final n = memberIds.length;
 
   void checkMember(String userId) {
     if (!balances.containsKey(userId)) {
@@ -69,8 +72,12 @@ Map<String, int> netBalances({
 
   for (final e in expenses) {
     checkMember(e.paidBy);
-    final share = e.amountCents ~/ n;
-    for (final id in memberIds) {
+    final participants = [
+      for (final id in memberIds)
+        if (id == e.paidBy || !e.date.isAfter(leftOn[id] ?? e.date)) id,
+    ];
+    final share = e.amountCents ~/ participants.length;
+    for (final id in participants) {
       if (id != e.paidBy) {
         balances[id] = balances[id]! - share;
         balances[e.paidBy] = balances[e.paidBy]! + share;

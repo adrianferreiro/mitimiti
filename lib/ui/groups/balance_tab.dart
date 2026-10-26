@@ -40,7 +40,12 @@ class BalanceTab extends StatelessWidget {
     final payment = await showDialog<_Payment>(
       context: context,
       builder: (_) => _PaymentDialog(
-        members: [for (final id in data.memberIds) (id: id, name: _name(id))],
+        // Un pago libre solo entre los que siguen; una deuda puede ser de
+        // alguien dado de baja.
+        members: [
+          for (final m in debt == null ? data.activeMembers : data.members)
+            (id: m.userId, name: _name(m.userId)),
+        ],
         currentUserId: currentUserId,
         debt: debt,
       ),
@@ -68,6 +73,7 @@ class BalanceTab extends StatelessWidget {
       memberIds: data.memberIds,
       expenses: data.expenses,
       settlements: data.settlements,
+      leftOn: data.leftOn,
     );
     final fromAfter = balances[p.from]! + p.amountCents;
     final toAfter = balances[p.to]! - p.amountCents;
@@ -136,6 +142,7 @@ class BalanceTab extends StatelessWidget {
       memberIds: memberIds,
       expenses: data.expenses,
       settlements: data.settlements,
+      leftOn: data.leftOn,
     );
     final paid = paidTotals(memberIds: memberIds, expenses: data.expenses);
     final debts = simplifyDebts(balances);
@@ -145,7 +152,7 @@ class BalanceTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
-          if (memberIds.length < 2) ...[
+          if (data.activeMembers.length < 2) ...[
             const Text(
               'Sos el único miembro del grupo. Invitá a alguien para '
               'repartir los gastos.',
@@ -201,7 +208,7 @@ class BalanceTab extends StatelessWidget {
                   ),
                 ),
               ),
-          if (memberIds.length >= 2)
+          if (data.activeMembers.length >= 2)
             Center(
               child: TextButton.icon(
                 onPressed: () => _registerPayment(context),
@@ -227,7 +234,12 @@ class BalanceTab extends StatelessWidget {
                       ),
                     ),
                     title: Text(_name(id)),
-                    subtitle: Text('Pagó ${formatCents(paid[id]!)}'),
+                    subtitle: Text(
+                      data.leftOn.containsKey(id)
+                          ? 'Pagó ${formatCents(paid[id]!)} · ya no está en '
+                                'el grupo'
+                          : 'Pagó ${formatCents(paid[id]!)}',
+                    ),
                     trailing: _BalanceLabel(cents: balances[id]!),
                   ),
               ],

@@ -48,7 +48,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   bool get _editing => widget.expense != null;
 
   String _defaultPayer() {
-    final ids = widget.data.memberIds;
+    final ids = [for (final m in widget.data.activeMembers) m.userId];
     return ids.contains(widget.currentUserId)
         ? widget.currentUserId
         : ids.first;
@@ -206,15 +206,18 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
               initialValue: _paidBy,
               decoration: const InputDecoration(labelText: 'Pagó'),
               items: [
+                // Los dados de baja no pueden pagar gastos nuevos; al editar
+                // uno que pagó alguien dado de baja, se lo sigue mostrando.
                 for (final m in data.members)
-                  DropdownMenuItem(
-                    value: m.userId,
-                    child: Text(
-                      m.userId == widget.currentUserId
-                          ? '${m.displayName} (yo)'
-                          : m.displayName,
+                  if (m.isActive || m.userId == widget.expense?.paidBy)
+                    DropdownMenuItem(
+                      value: m.userId,
+                      child: Text(
+                        m.userId == widget.currentUserId
+                            ? '${m.displayName} (yo)'
+                            : m.displayName,
+                      ),
                     ),
-                  ),
               ],
               onChanged: (v) => setState(() => _paidBy = v!),
             ),

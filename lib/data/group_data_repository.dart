@@ -24,7 +24,21 @@ class GroupData {
   /// Más recientes primero.
   final List<Settlement> settlements;
 
+  /// Todos, incluidos los dados de baja (siguen figurando en el saldo).
   List<String> get memberIds => [for (final m in members) m.userId];
+
+  /// Los que siguen en el grupo: los únicos que pueden pagar gastos o pagos
+  /// nuevos.
+  List<Member> get activeMembers => [
+    for (final m in members)
+      if (m.isActive) m,
+  ];
+
+  /// Fecha de baja de cada miembro dado de baja, para `netBalances`.
+  Map<String, DateTime> get leftOn => {
+    for (final m in members)
+      if (m.leftOn != null) m.userId: m.leftOn!,
+  };
 
   String memberName(String userId) {
     for (final m in members) {
@@ -51,7 +65,7 @@ class GroupDataRepository {
     final results = await Future.wait([
       _db
           .from('group_members')
-          .select('user_id, profiles(display_name)')
+          .select('user_id, left_on, profiles(display_name)')
           .eq('group_id', groupId)
           .order('joined_at'),
       _db
@@ -193,6 +207,9 @@ class GroupDataRepository {
         (row['profiles'] as Map<String, dynamic>?)?['display_name']
             as String? ??
         'Sin nombre',
+    leftOn: row['left_on'] == null
+        ? null
+        : DateTime.parse(row['left_on'] as String),
   );
 
   static Category _categoryFromRow(Map<String, dynamic> row) => Category(

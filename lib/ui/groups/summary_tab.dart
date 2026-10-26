@@ -33,7 +33,13 @@ class SummaryTab extends StatelessWidget {
     final total = expenses.fold(0, (sum, e) => sum + e.amountCents);
     final byCategory = totalsByCategory(expenses);
     final byMember = paidTotals(memberIds: data.memberIds, expenses: expenses);
-    final members = data.memberIds.length;
+    // Los que participan de algún gasto del período (los dados de baja, solo
+    // de los gastos hasta su fecha de baja).
+    final participants = {
+      for (final m in data.members)
+        if (expenses.any((e) => m.participatesOn(e.date))) m.userId,
+    };
+    final members = participants.length;
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -89,13 +95,14 @@ class SummaryTab extends StatelessWidget {
               title: 'Pagado por cada uno',
               rows: [
                 for (final id in data.memberIds)
-                  _Row(
-                    label: id == currentUserId
-                        ? '${data.memberName(id)} (yo)'
-                        : data.memberName(id),
-                    cents: byMember[id]!,
-                    total: total,
-                  ),
+                  if (participants.contains(id) || byMember[id]! > 0)
+                    _Row(
+                      label: id == currentUserId
+                          ? '${data.memberName(id)} (yo)'
+                          : data.memberName(id),
+                      cents: byMember[id]!,
+                      total: total,
+                    ),
               ],
             ),
           ],
