@@ -29,6 +29,11 @@ class ProfileRepository {
     () => _db.from('profiles').update({'display_name': name}).eq('id', _userId),
   );
 
+  /// Elimina la cuenta (RPC `delete_my_account`): borra el usuario de Auth y
+  /// deja el perfil como "Usuario eliminado". Después hay que cerrar sesión.
+  Future<void> deleteMyAccount() =>
+      _guard(() => _db.rpc<void>('delete_my_account'));
+
   /// Sin fila guardada = todas activadas.
   Future<NotificationPrefs> myNotificationPrefs() => _guard(() async {
     final row = await _db
