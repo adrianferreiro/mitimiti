@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_exception.dart';
@@ -46,10 +48,19 @@ class AuthRepository {
     return response.session != null;
   }
 
+  /// Con mala conexión no se queda esperando: si [beforeSignOut] o el aviso
+  /// al servidor tardan, la sesión se cierra igual (la local se borra antes
+  /// de avisar al servidor).
   Future<void> signOut() async {
-    await beforeSignOut?.call();
-    await _auth.signOut();
+    try {
+      await beforeSignOut?.call().timeout(_signOutTimeout);
+    } on TimeoutException catch (_) {}
+    try {
+      await _auth.signOut().timeout(_signOutTimeout);
+    } on TimeoutException catch (_) {}
   }
+
+  static const _signOutTimeout = Duration(seconds: 4);
 
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {

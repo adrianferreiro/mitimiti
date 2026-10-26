@@ -51,6 +51,37 @@ Future<bool> confirm(
   return result == true;
 }
 
+/// Muestra un diálogo con [message] y un indicador de progreso mientras corre
+/// [action], sin dejar cerrarlo. Se cierra solo al terminar, bien o con error.
+Future<T> runWithProgress<T>(
+  BuildContext context,
+  String message,
+  Future<T> Function() action,
+) async {
+  final navigator = Navigator.of(context);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    ),
+  );
+  try {
+    return await action();
+  } finally {
+    navigator.pop();
+  }
+}
+
 /// Diálogo con un campo de texto. Es dueño de su controller: si lo liberara
 /// quien abre el diálogo apenas vuelve `showDialog`, la animación de cierre
 /// todavía lo usaría (y explota con "used after being disposed").

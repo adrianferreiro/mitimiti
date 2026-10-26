@@ -76,10 +76,19 @@ class _AccountScreenState extends State<AccountScreen> {
       action: 'Cerrar sesión',
     );
     if (!yes || !mounted) return;
-    // Volver a la raíz antes de salir: la raíz pasa a mostrar el login y no
-    // tienen que quedar pantallas del grupo apiladas encima.
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    await widget.auth.signOut();
+    final navigator = Navigator.of(context);
+    await runWithProgress(context, 'Cerrando sesión…', _endSession);
+    // Recién ahora volver a la raíz, que ya muestra el login: si se vuelve
+    // antes, se ve la lista de grupos mientras se cierra la sesión.
+    navigator.popUntil((route) => route.isFirst);
+  }
+
+  /// Cierra la sesión. La sesión local se borra aunque falle el aviso al
+  /// servidor, así que no hay error que mostrar.
+  Future<void> _endSession() async {
+    try {
+      await widget.auth.signOut();
+    } catch (_) {}
   }
 
   Future<void> _deleteAccount() async {
@@ -107,14 +116,19 @@ class _AccountScreenState extends State<AccountScreen> {
       _show('No se eliminó la cuenta: el texto no coincide.');
       return;
     }
-    if (!await _run(widget.profile.deleteMyAccount) || !mounted) return;
+    final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    // El usuario ya no existe en el servidor: lo que importa es borrar la
-    // sesión local.
-    try {
-      await widget.auth.signOut();
-    } catch (_) {}
+    final deleted = await runWithProgress(
+      context,
+      'Eliminando cuenta…',
+      () async {
+        if (!await _run(widget.profile.deleteMyAccount)) return false;
+        await _endSession();
+        return true;
+      },
+    );
+    if (!deleted) return;
+    navigator.popUntil((route) => route.isFirst);
     messenger.showSnackBar(
       const SnackBar(content: Text('Tu cuenta fue eliminada.')),
     );
