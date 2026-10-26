@@ -6,6 +6,7 @@ import '../../domain/balance.dart';
 import '../../domain/models/group.dart';
 import '../../domain/models/settlement.dart';
 import '../../domain/money.dart';
+import '../dialogs.dart';
 import '../format.dart';
 import '../theme.dart';
 import 'members_screen.dart';
@@ -33,26 +34,53 @@ class BalanceTab extends StatelessWidget {
       ? '${data.memberName(userId)} (yo)'
       : data.memberName(userId);
 
-  Future<void> _settle(BuildContext context, Debt debt) async {
-    final amountCents = await showDialog<int>(
+  /// Registra un pago: saldando [debt] (total o parcial) o, sin [debt],
+  /// eligiendo libremente quién paga y a quién.
+  Future<void> _registerPayment(BuildContext context, {Debt? debt}) async {
+    final payment = await showDialog<_Payment>(
       context: context,
-      builder: (_) => _SettleDialog(
-        from: _name(debt.fromUserId),
-        to: _name(debt.toUserId),
-        suggestedCents: debt.amountCents,
+      builder: (_) => _PaymentDialog(
+        members: [for (final id in data.memberIds) (id: id, name: _name(id))],
+        currentUserId: currentUserId,
+        debt: debt,
       ),
     );
-    if (amountCents == null || !context.mounted) return;
-    final now = DateTime.now();
+    if (payment == null || !context.mounted) return;
+    if (debt == null && !await _confirmCredit(context, payment)) return;
+    if (!context.mounted) return;
     await _run(
       context,
       () => repository.addSettlement(
         groupId: group.id,
-        fromUserId: debt.fromUserId,
-        toUserId: debt.toUserId,
-        amountCents: amountCents,
-        date: DateTime(now.year, now.month, now.day),
+        fromUserId: payment.from,
+        toUserId: payment.to,
+        amountCents: payment.amountCents,
+        date: payment.date,
       ),
+    );
+  }
+
+  /// Si el pago deja a alguien con saldo a favor (o deuda nueva), pide
+  /// confirmación. Al saldar una deuda no hace falta: el diálogo ya limita
+  /// el monto.
+  Future<bool> _confirmCredit(BuildContext context, _Payment p) async {
+    final balances = netBalances(
+      memberIds: data.memberIds,
+      expenses: data.expenses,
+      settlements: data.settlements,
+    );
+    final fromAfter = balances[p.from]! + p.amountCents;
+    final toAfter = balances[p.to]! - p.amountCents;
+    if (fromAfter <= 0 && toAfter >= 0) return true;
+    return confirm(
+      context,
+      title: '¿Registrar el pago igual?',
+      message: fromAfter > 0
+          ? 'Con este pago, ${_name(p.from)} pasaría a tener '
+                '${formatCents(fromAfter)} a favor.'
+          : 'Con este pago, ${_name(p.to)} pasaría a deber '
+                '${formatCents(-toAfter)}.',
+      action: 'Registrar',
     );
   }
 
@@ -164,7 +192,7 @@ class BalanceTab extends StatelessWidget {
                             ),
                           ),
                           FilledButton(
-                            onPressed: () => _settle(context, d),
+                            onPressed: () => _registerPayment(context, debt: d),
                             child: const Text('Saldar'),
                           ),
                         ],
@@ -173,6 +201,14 @@ class BalanceTab extends StatelessWidget {
                   ),
                 ),
               ),
+          if (memberIds.length >= 2)
+            Center(
+              child: TextButton.icon(
+                onPressed: () => _registerPayment(context),
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Registrar pago'),
+              ),
+            ),
           const SizedBox(height: 20),
           _SectionTitle('Por persona'),
           Card(
@@ -259,27 +295,49 @@ class _BalanceLabel extends StatelessWidget {
   }
 }
 
-/// Confirma el pago; permite cambiar el monto para pagos parciales.
-class _SettleDialog extends StatefulWidget {
-  const _SettleDialog({
-    required this.from,
-    required this.to,
-    required this.suggestedCents,
+/// Lo que devuelve [_PaymentDialog].
+typedef _Payment = ({String from, String to, int amountCents, DateTime date});
+
+/// Registra un pago. Con [debt], salda esa deuda (total o parcial, nunca más
+/// de lo que se debe); sin [debt], se elige quién paga, a quién y cuánto.
+class _PaymentDialog extends StatefulWidget {
+  const _PaymentDialog({
+    required this.members,
+    required this.currentUserId,
+    this.debt,
   });
 
-  final String from;
-  final String to;
-  final int suggestedCents;
+  final List<({String id, String name})> members;
+  final String currentUserId;
+  final Debt? debt;
 
   @override
-  State<_SettleDialog> createState() => _SettleDialogState();
+  State<_PaymentDialog> createState() => _PaymentDialogState();
 }
 
-class _SettleDialogState extends State<_SettleDialog> {
+class _PaymentDialogState extends State<_PaymentDialog> {
   final _formKey = GlobalKey<FormState>();
-  late final _amount = TextEditingController(
-    text: formatCents(widget.suggestedCents).replaceFirst(r'$', ''),
-  );
+  final _amount = TextEditingController();
+  late String _from;
+  late String _to;
+  var _partial = false;
+  late DateTime _date;
+
+  @override
+  void initState() {
+    super.initState();
+    final debt = widget.debt;
+    if (debt != null) {
+      _from = debt.fromUserId;
+      _to = debt.toUserId;
+    } else {
+      final isMember = widget.members.any((m) => m.id == widget.currentUserId);
+      _from = isMember ? widget.currentUserId : widget.members.first.id;
+      _to = widget.members.firstWhere((m) => m.id != _from).id;
+    }
+    final now = DateTime.now();
+    _date = DateTime(now.year, now.month, now.day);
+  }
 
   @override
   void dispose() {
@@ -287,42 +345,136 @@ class _SettleDialogState extends State<_SettleDialog> {
     super.dispose();
   }
 
+  String _name(String id) => widget.members.firstWhere((m) => m.id == id).name;
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.of(context).pop(parseCents(_amount.text));
+    final debt = widget.debt;
+    final amountCents = debt != null && !_partial
+        ? debt.amountCents
+        : parseCents(_amount.text)!;
+    Navigator.of(context).pop<_Payment>((
+      from: _from,
+      to: _to,
+      amountCents: amountCents,
+      date: _date,
+    ));
   }
+
+  Widget _memberDropdown({
+    required String label,
+    required String value,
+    required ValueChanged<String> onChanged,
+    FormFieldValidator<String>? validator,
+  }) => DropdownButtonFormField<String>(
+    initialValue: value,
+    isExpanded: true,
+    decoration: InputDecoration(labelText: label),
+    items: [
+      for (final m in widget.members)
+        DropdownMenuItem(
+          value: m.id,
+          child: Text(m.name, overflow: TextOverflow.ellipsis),
+        ),
+    ],
+    onChanged: (v) => setState(() => onChanged(v!)),
+    validator: validator,
+  );
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final debt = widget.debt;
     return AlertDialog(
       title: const Text('Registrar pago'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${widget.from} le pagó a ${widget.to}:'),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _amount,
-              decoration: const InputDecoration(
-                labelText: 'Monto',
-                prefixText: r'$ ',
-                helperText: 'Podés cambiarlo si fue un pago parcial',
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (debt != null) ...[
+                Text('${_name(_from)} le debe a ${_name(_to)}'),
+                const SizedBox(height: 4),
+                Text(
+                  formatCents(debt.amountCents),
+                  style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 16),
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Total')),
+                    ButtonSegment(value: true, label: Text('Parcial')),
+                  ],
+                  selected: {_partial},
+                  onSelectionChanged: (s) => setState(() => _partial = s.first),
+                ),
+              ] else ...[
+                _memberDropdown(
+                  label: 'Pagó',
+                  value: _from,
+                  onChanged: (v) => _from = v,
+                ),
+                const SizedBox(height: 16),
+                _memberDropdown(
+                  label: 'A',
+                  value: _to,
+                  onChanged: (v) => _to = v,
+                  validator: (v) =>
+                      v == _from ? 'Tiene que ser otra persona' : null,
+                ),
+              ],
+              if (debt == null || _partial) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _amount,
+                  autofocus: debt != null,
+                  decoration: InputDecoration(
+                    labelText: debt != null ? 'Monto pagado' : 'Monto',
+                    prefixText: r'$ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: (v) {
+                    final cents = parseCents(v ?? '');
+                    if (cents == null) return 'Ingresá un monto válido';
+                    if (cents <= 0) return 'El monto tiene que ser mayor a 0';
+                    if (debt != null && cents > debt.amountCents) {
+                      return 'No puede ser mayor a '
+                          '${formatCents(debt.amountCents)}';
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+              ],
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: _pickDate,
+                borderRadius: BorderRadius.circular(4),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  child: Text(formatDate(_date)),
+                ),
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              validator: (v) {
-                final cents = parseCents(v ?? '');
-                if (cents == null) return 'Ingresá un monto válido';
-                if (cents <= 0) return 'El monto tiene que ser mayor a 0';
-                return null;
-              },
-              onFieldSubmitted: (_) => _submit(),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
