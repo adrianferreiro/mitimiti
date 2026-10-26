@@ -7,7 +7,7 @@ import '../dialogs.dart';
 import '../theme.dart';
 import 'notifications_screen.dart';
 
-/// Nombre, contraseña, notificaciones y cierre de sesión.
+/// Nombre, contraseña, notificaciones, cierre de sesión y eliminar la cuenta.
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key, required this.auth, required this.profile});
 
@@ -80,6 +80,44 @@ class _AccountScreenState extends State<AccountScreen> {
     // tienen que quedar pantallas del grupo apiladas encima.
     Navigator.of(context).popUntil((route) => route.isFirst);
     await widget.auth.signOut();
+  }
+
+  Future<void> _deleteAccount() async {
+    final yes = await confirm(
+      context,
+      title: '¿Eliminar tu cuenta?',
+      message:
+          'Se borran tus datos de acceso y no vas a poder volver a entrar con '
+          'esta cuenta. Los grupos donde estás solo se borran. En los grupos '
+          'compartidos, tus gastos y pagos quedan a nombre de "Usuario '
+          'eliminado" para que el saldo de los demás no cambie.\n\n'
+          'No se puede deshacer.',
+      action: 'Continuar',
+    );
+    if (!yes || !mounted) return;
+    final typed = await showTextPrompt(
+      context,
+      title: 'Confirmá la eliminación',
+      label: 'Escribí ELIMINAR',
+      action: 'Eliminar cuenta',
+      uppercase: true,
+    );
+    if (typed == null || !mounted) return;
+    if (typed.toUpperCase() != 'ELIMINAR') {
+      _show('No se eliminó la cuenta: el texto no coincide.');
+      return;
+    }
+    if (!await _run(widget.profile.deleteMyAccount) || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    // El usuario ya no existe en el servidor: lo que importa es borrar la
+    // sesión local.
+    try {
+      await widget.auth.signOut();
+    } catch (_) {}
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Tu cuenta fue eliminada.')),
+    );
   }
 
   /// Corre [action] y muestra el error si falla. Devuelve si salió bien.
@@ -188,6 +226,12 @@ class _AccountScreenState extends State<AccountScreen> {
                 onPressed: _signOut,
                 icon: const Icon(Icons.logout),
                 label: const Text('Cerrar sesión'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _deleteAccount,
+                style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                child: const Text('Eliminar cuenta'),
               ),
             ],
           );
